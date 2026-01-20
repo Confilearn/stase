@@ -1,7 +1,8 @@
 import { Stack } from "expo-router";
+import "./global.css";
 
 export default function RootLayout() {
-// STASE APP
+  // STASE APP
 
-  return <Stack />;
+  return <Stack screenOptions={{ headerShown: false }} />;
 }
