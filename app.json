@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "stase",
+    "name": "Stase",
     "slug": "stase",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -12,12 +12,6 @@
       "supportsTablet": true
     },
     "android": {
-      // "adaptiveIcon": {
-      //   "backgroundColor": "#E6F4FE",
-      //   "foregroundImage": "./assets/images/android-icon-foreground.png",
-      //   "backgroundImage": "./assets/images/android-icon-background.png",
-      //   "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      // },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
@@ -31,12 +25,12 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/splash.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#A0CCFF",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#0A385D"
           }
         }
       ]
@@ -47,3 +41,4 @@
     }
   }
 }
+

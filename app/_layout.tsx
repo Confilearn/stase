@@ -6,9 +6,9 @@ import "./global.css";
 export default function RootLayout() {
   // Import fonts
   const [fontsLoaded, error] = useFonts({
-    "metropolis-extrabold": require("../assets/fonts/metropolis-extra-bold.otf"),
+    "metropolis-extra-bold": require("../assets/fonts/metropolis-extra-bold.otf"),
     "metropolis-bold": require("../assets/fonts/metropolis-bold.otf"),
-    "metropolis-semibold": require("../assets/fonts/metropolis-semi-bold.otf"),
+    "metropolis-semi-bold": require("../assets/fonts/metropolis-semi-bold.otf"),
     "metropolis-medium": require("../assets/fonts/metropolis-medium.otf"),
   });
 
