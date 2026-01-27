@@ -33,7 +33,8 @@
             "backgroundColor": "#0A385D"
           }
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -41,6 +42,3 @@
     }
   }
 }
-
-// TODO: Configure further splash screen after production build
-
