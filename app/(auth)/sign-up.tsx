@@ -1,7 +1,8 @@
 import CustomButton from '@/components/CustomButton';
 import CustomInput from '@/components/CustomInput';
 import { useThemeStore } from '@/store/theme.store';
-import { useSignUp } from '@clerk/clerk-expo';
+import { tokenStorage } from '@/utils/tokenStorage';
+import { useAuth, useSignUp } from '@clerk/clerk-expo';
 import SimpleLineIcons from '@expo/vector-icons/SimpleLineIcons';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -51,6 +52,7 @@ const SignUp = () => {
 
 
     const { isLoaded, signUp, setActive } = useSignUp()
+    const { getToken } = useAuth()
 
     const submit = async () => {
         setError({ firstName: "", lastName: "", username: "", email: "", password: "" });
@@ -84,7 +86,14 @@ const SignUp = () => {
             })
             if (result.status === 'complete') {
                 await setActive({ session: result.createdSessionId })
-                router.replace('/(app)/index')
+
+                // Get and store the token
+                const token = await getToken();
+                if (token) {
+                    await tokenStorage.saveToken(token);
+                }
+
+                router.replace('/(app)')
             }
             console.log(result)
         } catch (error: any) {

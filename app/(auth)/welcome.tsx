@@ -1,6 +1,7 @@
 import CustomButton from '@/components/CustomButton'
 import { images } from '@/constants'
-import { useOAuth } from '@clerk/clerk-expo'
+import { tokenStorage } from '@/utils/tokenStorage'
+import { useAuth, useOAuth } from '@clerk/clerk-expo'
 import { router } from 'expo-router'
 import { useState } from 'react'
 import { ActivityIndicator, Image, Text, TouchableOpacity, useColorScheme, View } from 'react-native'
@@ -8,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 const Welcome = () => {
     const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' })
+    const { getToken } = useAuth()
     const [isLoading, setIsLoading] = useState(false)
     const colorScheme = useColorScheme()
 
@@ -18,7 +20,14 @@ const Welcome = () => {
 
             if (createdSessionId) {
                 await setActive!({ session: createdSessionId })
-                router.replace('/(app)/index')
+
+                // Get and store the token
+                const token = await getToken();
+                if (token) {
+                    await tokenStorage.saveToken(token);
+                }
+
+                router.replace('/(app)')
             }
         } catch (err: any) {
             console.error('OAuth error', err)
