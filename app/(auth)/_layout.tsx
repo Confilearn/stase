@@ -1,6 +1,12 @@
-import { Slot } from 'expo-router';
+import { useAuth } from '@clerk/clerk-expo';
+import { Redirect, Slot } from 'expo-router';
 
 const AuthLayout = () => {
+    const { isSignedIn } = useAuth();
+
+    if (isSignedIn) {
+        return <Redirect href={'/index'} />;
+    }
 
     return (
         <Slot />

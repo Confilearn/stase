@@ -1,11 +1,13 @@
 import { useThemeStore } from "@/store/theme.store";
+import { ClerkProvider } from '@clerk/clerk-expo';
+import { tokenCache } from '@clerk/clerk-expo/token-cache';
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
 import { useEffect } from "react";
 import "./global.css";
 
 export default function RootLayout() {
-  const { theme, getTheme } = useThemeStore()
+  const { getTheme } = useThemeStore()
 
   // Import fonts
   const [fontsLoaded, error] = useFonts({
@@ -22,11 +24,24 @@ export default function RootLayout() {
     // Fetch Theme
     getTheme()
 
-    if (fontsLoaded) SplashScreen.hideAsync;
-  }, [fontsLoaded, error, theme]);
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, error]);
 
 
   if (!fontsLoaded) return null;
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <ClerkProvider tokenCache={tokenCache}>
+      <Stack screenOptions={{ headerShown: false }} >
+        <Stack.Protected guard={false}>
+          <Stack.Screen name="(app)" />
+        </Stack.Protected>
+        <Stack.Protected guard={false}>
+          <Stack.Screen name="(auth)" />
+        </Stack.Protected>
+      </Stack>
+    </ClerkProvider>
+  );
 }
