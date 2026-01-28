@@ -70,7 +70,7 @@ export const POST = async (request: Request) => {
     console.error("Error updating transaction PIN:", error);
     return new Response(
       JSON.stringify({
-        error: error.message || "Internal server error",
+        error: "Internal server error",
       }),
       {
         status: 500,
