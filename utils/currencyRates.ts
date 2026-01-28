@@ -1,7 +1,7 @@
 /**
  * Static currency exchange rates for the Stase fintech app
  * All rates are relative to USD (base currency)
- * Rates updated as of today's market prices
+ * These are fixed reference rates used for all conversions (not live market rates)
  */
 
 export interface CurrencyRate {
