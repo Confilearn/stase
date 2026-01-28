@@ -1,4 +1,4 @@
-import { connectToDatabase, disconnectFromDatabase } from "@/lib/mongodb";
+import { connectToDatabase } from "@/lib/mongodb";
 import { BankAccount, SupportedCurrency } from "@/models/BankAccount";
 import { Transaction } from "@/models/Transaction";
 import { User } from "@/models/User";
@@ -146,6 +146,19 @@ export const POST = async (request: Request) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error: any) {
+    // Handle MongoDB duplicate key error
+    if (error.code === 11000) {
+      return new Response(
+        JSON.stringify({
+          error: "User with this email or username already exists",
+        }),
+        {
+          status: 409,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
     console.error("Error creating account:", error);
     return new Response(
       JSON.stringify({
@@ -156,8 +169,6 @@ export const POST = async (request: Request) => {
         headers: { "Content-Type": "application/json" },
       },
     );
-  } finally {
-    await disconnectFromDatabase();
   }
 };
 
