@@ -147,10 +147,22 @@ export const POST = async (request: Request) => {
       );
     }
 
-    // Update account balance
-    const newBalance = bankAccount.balance + amount;
-    bankAccount.balance = newBalance;
-    await bankAccount.save();
+    // Atomically update balance
+    const updatedAccount = await BankAccount.findOneAndUpdate(
+      { userId: user._id, accountCurrency: accountCurrency },
+      { $inc: { balance: amount } },
+      { new: true }
+    );
+
+    if (!updatedAccount) {
+      return new Response(
+        JSON.stringify({ error: `No ${accountCurrency} account found` }),
+        { status: 404, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    const newBalance = updatedAccount.balance;
+    const previousBalance = newBalance - amount;
 
     // Generate unique transaction reference
     const transactionReference = `DEP-${Date.now()}-${Math.random()
