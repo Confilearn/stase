@@ -153,7 +153,6 @@ export const POST = async (request: Request) => {
     return new Response(
       JSON.stringify({
         error: error.message || "Internal server error",
-        details: error.stack,
       }),
       {
         status: 500,
