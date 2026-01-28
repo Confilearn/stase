@@ -3,10 +3,10 @@ import {
   unauthorizedResponse,
   verifyAuth,
 } from "@/lib/auth";
+import { connectToDatabase } from "@/lib/mongodb";
 import { BankAccount } from "@/models/BankAccount";
 import { Transaction } from "@/models/Transaction";
 import bcrypt from "bcryptjs";
-import { connectToDatabase } from "@/lib/mongodb";
 
 interface DepositRequest {
   amount: number;
@@ -32,13 +32,10 @@ export const POST = async (request: Request) => {
     try {
       body = await request.json();
     } catch {
-      return new Response(
-        JSON.stringify({ error: "Invalid JSON body" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const { amount, accountCurrency, transactionPin } = body;
@@ -47,12 +44,13 @@ export const POST = async (request: Request) => {
     if (!amount || !accountCurrency || !transactionPin) {
       return new Response(
         JSON.stringify({
-          error: "Missing required fields: amount, accountCurrency, transactionPin",
+          error:
+            "Missing required fields: amount, accountCurrency, transactionPin",
         }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -65,7 +63,7 @@ export const POST = async (request: Request) => {
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -78,7 +76,7 @@ export const POST = async (request: Request) => {
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -92,7 +90,7 @@ export const POST = async (request: Request) => {
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -105,11 +103,14 @@ export const POST = async (request: Request) => {
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
-    const isPinValid = await bcrypt.compare(transactionPin, user.transactionPin);
+    const isPinValid = await bcrypt.compare(
+      transactionPin,
+      user.transactionPin,
+    );
     if (!isPinValid) {
       return new Response(
         JSON.stringify({
@@ -118,7 +119,7 @@ export const POST = async (request: Request) => {
         {
           status: 401,
           headers: { "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -142,7 +143,7 @@ export const POST = async (request: Request) => {
         {
           status: 404,
           headers: { "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
