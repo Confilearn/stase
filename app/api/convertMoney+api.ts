@@ -135,9 +135,18 @@ export const POST = async (request: Request) => {
 
     // ============= USER VALIDATION =============
     
-    // For testing purposes, allow userId to be passed in request
-    // In production, this would come from authentication token
-    const targetUserId = userId || "674e749098b040d5f65b9e1e"; // Default test user ID
+    // In production, userId should come from authentication token
+    if (!userId) {
+      await session.abortTransaction();
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "Authentication required",
+        }),
+        { status: 401, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    const targetUserId = userId;
     
     // Find the user
     const user = await User.findById(targetUserId).session(session);
