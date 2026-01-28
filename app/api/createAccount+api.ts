@@ -61,11 +61,9 @@ export const POST = async (request: Request) => {
     }
 
     // Create user
-    const defaultPassword = "password123";
     const defaultPin = "1234";
     const clerkUserId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    const hashedPassword = await bcrypt.hash(defaultPassword, 12);
     const hashedPin = await bcrypt.hash(defaultPin, 12);
 
     const user = new User({
@@ -73,7 +71,6 @@ export const POST = async (request: Request) => {
       lastName,
       username,
       email,
-      password: hashedPassword,
       transactionPin: hashedPin,
       clerkUserId,
     });

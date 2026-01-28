@@ -38,15 +38,9 @@ const UserSchema = new Schema<IUser>(
       trim: true,
       index: true,
     },
-    password: {
-      type: String,
-      required: true,
-      // Always store a hashed password, never plain text.
-    },
     transactionPin: {
       type: String,
       required: true,
-      // Stored as bcrypt hash (60 characters)
     },
     clerkUserId: {
       type: String,
