@@ -189,7 +189,7 @@ export const POST = async (request: Request) => {
     // Find target account (account to convert TO)
     const targetAccount = await BankAccount.findOne({
       userId: targetUserId,
-      currency: convertToAccountCurrency,
+      accountCurrency: convertToAccountCurrency,
     }).session(session);
 
     if (!targetAccount) {
