@@ -1,4 +1,8 @@
-import { verifyAuth, unauthorizedResponse } from "@/lib/auth";
+import {
+  serverErrorResponse,
+  unauthorizedResponse,
+  verifyAuth,
+} from "@/lib/auth";
 import { BankAccount } from "@/models/BankAccount";
 import { Transaction } from "@/models/Transaction";
 
@@ -8,6 +12,9 @@ export const GET = async (request: Request) => {
     const authResult = await verifyAuth(request);
 
     if (!authResult.authenticated) {
+      if (authResult.status === "server_error") {
+        return serverErrorResponse(authResult.error);
+      }
       return unauthorizedResponse(authResult.error);
     }
 

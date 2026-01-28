@@ -1,4 +1,8 @@
-import { unauthorizedResponse, verifyAuth } from "@/lib/auth";
+import {
+  serverErrorResponse,
+  unauthorizedResponse,
+  verifyAuth,
+} from "@/lib/auth";
 import bcrypt from "bcryptjs";
 
 interface CreatePinRequest {
@@ -10,10 +14,11 @@ export const POST = async (request: Request) => {
     // Authenticate user
     const authResult = await verifyAuth(request);
     if (!authResult.authenticated || !authResult.user) {
+      if (authResult.status === "server_error") {
+        return serverErrorResponse(authResult.error);
+      }
       return unauthorizedResponse(authResult.error);
     }
-
-    const user = authResult.user;
 
     const user = authResult.user;
 
@@ -21,13 +26,10 @@ export const POST = async (request: Request) => {
     try {
       body = await request.json();
     } catch {
-      return new Response(
-        JSON.stringify({ error: "Invalid JSON body" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
     const { pin } = body;
 
