@@ -15,7 +15,20 @@ export const POST = async (request: Request) => {
 
     const user = authResult.user;
 
-    const body: CreatePinRequest = await request.json();
+    const user = authResult.user;
+
+    let body: CreatePinRequest;
+    try {
+      body = await request.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON body" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
     const { pin } = body;
 
     // Validate required fields
