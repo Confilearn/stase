@@ -290,9 +290,11 @@ export const POST = async (request: Request) => {
     const transactionReference = generateTransactionReference();
     const transactionDate = new Date();
 
-    // Update balances
-    senderAccount.balance -= amount;
-    receiverAccount.balance += amount;
+    // Update balances (use rounding to handle floating-point precision)
+    senderAccount.balance =
+      Math.round((senderAccount.balance - amount) * 100) / 100;
+    receiverAccount.balance =
+      Math.round((receiverAccount.balance + amount) * 100) / 100;
 
     // Save updated accounts
     await senderAccount.save({ session });
@@ -405,7 +407,9 @@ export const POST = async (request: Request) => {
  * Starts a MongoDB transaction session
  */
 async function startTransaction() {
-  return await mongoose.startSession();
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  return session;
 }
 
 /**
