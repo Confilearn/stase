@@ -37,10 +37,7 @@ node test-checkUser.js
 node test-depositWithdraw.js
 node test-transferMoney.js
 node test-convertMoney.js
-node test-cad-to-gbp.js
 
-# Run simple connectivity test
-node test-convertMoney-simple.js
 ```
 
 ## Test Coverage

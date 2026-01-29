@@ -6,10 +6,10 @@ const testCreateAccount = async () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        firstName: "John",
-        lastName: "Doe",
-        username: "johndoe",
-        email: "john.doe@example.com",
+        firstName: "Luffy",
+        lastName: "Taro",
+        username: "luffy",
+        email: "luffy@gmail.com",
       }),
     });
 

@@ -1,7 +1,13 @@
+import {
+  serverErrorResponse,
+  unauthorizedResponse,
+  verifyAuth,
+} from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { BankAccount, SupportedCurrency } from "@/models/BankAccount";
 import { Transaction } from "@/models/Transaction";
 import { User } from "@/models/User";
+import { generateTransactionReference } from "@/utils/TxReference";
 import { isValidEmail, isValidUsername } from "@/utils/validate";
 import mongoose from "mongoose";
 
@@ -13,24 +19,31 @@ interface TransferMoneyRequest {
   // Transfer details
   accountCurrency: SupportedCurrency;
   amount: number;
-
-  // Sender identification (in a real app, this would come from auth token)
-  senderUserId?: string; // Optional for testing, in production get from auth
 }
 
 export const POST = async (request: Request) => {
-  const session = await startTransaction();
+  let session;
 
   try {
+    // Authenticate user
+    const authResult = await verifyAuth(request);
+    if (!authResult.authenticated || !authResult.user) {
+      if (authResult.status === "server_error") {
+        return serverErrorResponse(authResult.error);
+      }
+      return unauthorizedResponse(authResult.error);
+    }
+
+    const sender = authResult.user;
+
     // Parse request body
     const body: TransferMoneyRequest = await request.json();
-    const { email, username, accountCurrency, amount, senderUserId } = body;
+    const { email, username, accountCurrency, amount } = body;
 
     // ============= INPUT VALIDATION =============
 
     // Validate receiver identification
     if (!email && !username) {
-      await session.abortTransaction();
       return new Response(
         JSON.stringify({
           success: false,
@@ -46,7 +59,6 @@ export const POST = async (request: Request) => {
 
     // Validate required fields
     if (!accountCurrency || amount === undefined) {
-      await session.abortTransaction();
       return new Response(
         JSON.stringify({
           success: false,
@@ -68,7 +80,6 @@ export const POST = async (request: Request) => {
       "GBP",
     ];
     if (!supportedCurrencies.includes(accountCurrency)) {
-      await session.abortTransaction();
       return new Response(
         JSON.stringify({
           success: false,
@@ -83,7 +94,6 @@ export const POST = async (request: Request) => {
 
     // Validate amount
     if (typeof amount !== "number" || isNaN(amount)) {
-      await session.abortTransaction();
       return new Response(
         JSON.stringify({
           success: false,
@@ -97,7 +107,6 @@ export const POST = async (request: Request) => {
     }
 
     if (amount <= 0) {
-      await session.abortTransaction();
       return new Response(
         JSON.stringify({
           success: false,
@@ -112,7 +121,6 @@ export const POST = async (request: Request) => {
 
     // Validate amount precision (max 2 decimal places)
     if (!Number.isInteger(amount * 100)) {
-      await session.abortTransaction();
       return new Response(
         JSON.stringify({
           success: false,
@@ -127,7 +135,6 @@ export const POST = async (request: Request) => {
 
     // Validate email format if provided
     if (email && !isValidEmail(email)) {
-      await session.abortTransaction();
       return new Response(
         JSON.stringify({
           success: false,
@@ -142,7 +149,6 @@ export const POST = async (request: Request) => {
 
     // Validate username format if provided
     if (username && !isValidUsername(username)) {
-      await session.abortTransaction();
       return new Response(
         JSON.stringify({
           success: false,
@@ -161,7 +167,6 @@ export const POST = async (request: Request) => {
     // Connect to database
     const dbResult = await connectToDatabase();
     if (!dbResult.success) {
-      await session.abortTransaction();
       return new Response(
         JSON.stringify({
           success: false,
@@ -174,25 +179,8 @@ export const POST = async (request: Request) => {
       );
     }
 
-    // For demo purposes, we'll use a default sender user
-    // In production, this would come from authentication token
-    const defaultSenderId = senderUserId || "507f1f77bcf86cd799439011"; // Example ObjectId
-
-    // Find sender (in production, get from auth)
-    const sender = await User.findById(defaultSenderId);
-    if (!sender) {
-      await session.abortTransaction();
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: "Sender account not found",
-        }),
-        {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
+    // Start transaction after successful database connection
+    session = await startTransaction();
 
     // Find receiver by email or username
     const receiverQuery: any = {};
@@ -287,8 +275,11 @@ export const POST = async (request: Request) => {
 
     // ============= PERFORM TRANSFER =============
 
-    const transactionReference = generateTransactionReference();
     const transactionDate = new Date();
+
+    // Generate unique references for both transactions
+    const senderReference = generateTransactionReference();
+    const receiverReference = generateTransactionReference();
 
     // Update balances (use rounding to handle floating-point precision)
     senderAccount.balance =
@@ -304,7 +295,7 @@ export const POST = async (request: Request) => {
     const senderTransaction = new Transaction({
       date: transactionDate,
       status: "completed",
-      reference: transactionReference,
+      reference: senderReference,
       from: sender._id,
       to: receiver._id,
       transactionType: "send",
@@ -321,7 +312,7 @@ export const POST = async (request: Request) => {
     const receiverTransaction = new Transaction({
       date: transactionDate,
       status: "completed",
-      reference: transactionReference,
+      reference: receiverReference,
       from: sender._id,
       to: receiver._id,
       transactionType: "receive",
@@ -347,7 +338,7 @@ export const POST = async (request: Request) => {
         success: true,
         message: `Successfully transferred ${amount.toFixed(2)} ${accountCurrency} to ${receiver.firstName} ${receiver.lastName}`,
         data: {
-          transactionReference,
+          transactionReference: senderReference,
           amount: amount.toFixed(2),
           currency: accountCurrency,
           sender: {
@@ -367,8 +358,11 @@ export const POST = async (request: Request) => {
       },
     );
   } catch (error: any) {
-    // Abort transaction on error
-    await session.abortTransaction();
+    // Abort transaction on error if session exists
+    if (session) {
+      await session.abortTransaction();
+      await session.endSession();
+    }
 
     console.error("Error transferring money:", error);
 
@@ -398,8 +392,10 @@ export const POST = async (request: Request) => {
       },
     );
   } finally {
-    // End session
-    await session.endSession();
+    // End session if it exists
+    if (session) {
+      await session.endSession();
+    }
   }
 };
 
@@ -410,13 +406,4 @@ async function startTransaction() {
   const session = await mongoose.startSession();
   session.startTransaction();
   return session;
-}
-
-/**
- * Generates a unique transaction reference
- */
-function generateTransactionReference(): string {
-  const timestamp = Date.now().toString();
-  const random = Math.random().toString(36).substr(2, 8).toUpperCase();
-  return `TXN${timestamp}${random}`;
 }
