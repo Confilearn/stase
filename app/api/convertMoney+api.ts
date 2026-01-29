@@ -1,13 +1,18 @@
+import {
+  serverErrorResponse,
+  unauthorizedResponse,
+  verifyAuth,
+} from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { BankAccount, SupportedCurrency } from "@/models/BankAccount";
 import { Transaction } from "@/models/Transaction";
-import { User } from "@/models/User";
-import { 
-  convertCurrency, 
-  getExchangeRate, 
-  isValidCurrencyPair, 
-  SupportedCurrency as CurrencyType 
+import {
+  convertCurrency,
+  SupportedCurrency as CurrencyType,
+  getExchangeRate,
+  isValidCurrencyPair,
 } from "@/utils/currencyRates";
+import { generateTransactionReference } from "@/utils/TxReference";
 import mongoose from "mongoose";
 
 interface ConvertMoneyRequest {
@@ -17,46 +22,56 @@ interface ConvertMoneyRequest {
   convertToAmount: number;
   convertToAccountCurrency: SupportedCurrency;
   currencyPairs: string; // e.g., "USD-CAD"
-  
-  // User identification (in a real app, this would come from auth token)
-  userId?: string; // Optional for testing, in production get from auth
 }
 
 /**
  * Start a MongoDB transaction for atomic operations
  */
 async function startTransaction() {
-  await connectToDatabase();
   const session = await mongoose.startSession();
   session.startTransaction();
   return session;
 }
 
 export const POST = async (request: Request) => {
-  const session = await startTransaction();
+  let session;
 
   try {
+    // Authenticate user
+    const authResult = await verifyAuth(request);
+    if (!authResult.authenticated || !authResult.user) {
+      if (authResult.status === "server_error") {
+        return serverErrorResponse(authResult.error);
+      }
+      return unauthorizedResponse(authResult.error);
+    }
+
+    const user = authResult.user;
+
     // Parse request body
     const body: ConvertMoneyRequest = await request.json();
-    const { 
-      convertFromAmount, 
-      convertFromAccountCurrency, 
-      convertToAmount, 
-      convertToAccountCurrency, 
+    const {
+      convertFromAmount,
+      convertFromAccountCurrency,
+      convertToAmount,
+      convertToAccountCurrency,
       currencyPairs,
-      userId 
     } = body;
 
     // ============= INPUT VALIDATION =============
 
     // Validate required fields
-    if (!convertFromAmount || !convertFromAccountCurrency || 
-        !convertToAmount || !convertToAccountCurrency || !currencyPairs) {
-      await session.abortTransaction();
+    if (
+      !convertFromAmount ||
+      !convertFromAccountCurrency ||
+      !convertToAmount ||
+      !convertToAccountCurrency ||
+      !currencyPairs
+    ) {
       return new Response(
         JSON.stringify({
           success: false,
-          message: "All conversion fields are required: convertFromAmount, convertFromAccountCurrency, convertToAmount, convertToAccountCurrency, currencyPairs",
+          message: "All conversion fields are required",
         }),
         {
           status: 400,
@@ -67,7 +82,6 @@ export const POST = async (request: Request) => {
 
     // Validate amounts are positive numbers
     if (convertFromAmount <= 0 || convertToAmount <= 0) {
-      await session.abortTransaction();
       return new Response(
         JSON.stringify({
           success: false,
@@ -83,7 +97,6 @@ export const POST = async (request: Request) => {
     // Validate currency pair format
     const expectedPair = `${convertFromAccountCurrency}-${convertToAccountCurrency}`;
     if (currencyPairs !== expectedPair) {
-      await session.abortTransaction();
       return new Response(
         JSON.stringify({
           success: false,
@@ -97,8 +110,9 @@ export const POST = async (request: Request) => {
     }
 
     // Validate supported currencies
-    if (!isValidCurrencyPair(convertFromAccountCurrency, convertToAccountCurrency)) {
-      await session.abortTransaction();
+    if (
+      !isValidCurrencyPair(convertFromAccountCurrency, convertToAccountCurrency)
+    ) {
       return new Response(
         JSON.stringify({
           success: false,
@@ -113,14 +127,13 @@ export const POST = async (request: Request) => {
 
     // Validate conversion rate matches our static rates
     const expectedRate = getExchangeRate(
-      convertFromAccountCurrency as CurrencyType, 
-      convertToAccountCurrency as CurrencyType
+      convertFromAccountCurrency as CurrencyType,
+      convertToAccountCurrency as CurrencyType,
     );
     const actualRate = convertToAmount / convertFromAmount;
-    
+
     // Allow small rounding differences (0.001 tolerance)
     if (Math.abs(expectedRate - actualRate) > 0.001) {
-      await session.abortTransaction();
       return new Response(
         JSON.stringify({
           success: false,
@@ -133,42 +146,31 @@ export const POST = async (request: Request) => {
       );
     }
 
-    // ============= USER VALIDATION =============
-    
-    // In production, userId should come from authentication token
-    if (!userId) {
-      await session.abortTransaction();
+    // ============= DATABASE OPERATIONS =============
+
+    // Connect to database
+    const dbResult = await connectToDatabase();
+    if (!dbResult.success) {
       return new Response(
         JSON.stringify({
           success: false,
-          message: "Authentication required",
-        }),
-        { status: 401, headers: { "Content-Type": "application/json" } },
-      );
-    }
-    const targetUserId = userId;
-    
-    // Find the user
-    const user = await User.findById(targetUserId).session(session);
-    if (!user) {
-      await session.abortTransaction();
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: "User not found",
+          message: "Database connection failed. Please try again later",
         }),
         {
-          status: 404,
+          status: 500,
           headers: { "Content-Type": "application/json" },
         },
       );
     }
 
+    // Start transaction after successful database connection
+    session = await startTransaction();
+
     // ============= ACCOUNT VALIDATION =============
 
     // Find source account (account to convert FROM)
     const sourceAccount = await BankAccount.findOne({
-      userId: targetUserId,
+      userId: user._id,
       accountCurrency: convertFromAccountCurrency,
     }).session(session);
 
@@ -188,7 +190,7 @@ export const POST = async (request: Request) => {
 
     // Find target account (account to convert TO)
     const targetAccount = await BankAccount.findOne({
-      userId: targetUserId,
+      userId: user._id,
       accountCurrency: convertToAccountCurrency,
     }).session(session);
 
@@ -229,7 +231,7 @@ export const POST = async (request: Request) => {
     const actualConvertedAmount = convertCurrency(
       convertFromAmount,
       convertFromAccountCurrency as CurrencyType,
-      convertToAccountCurrency as CurrencyType
+      convertToAccountCurrency as CurrencyType,
     );
 
     // Verify the calculated amount matches the requested amount (allowing small rounding differences)
@@ -259,44 +261,52 @@ export const POST = async (request: Request) => {
 
     const exchangeRate = getExchangeRate(
       convertFromAccountCurrency as CurrencyType,
-      convertToAccountCurrency as CurrencyType
+      convertToAccountCurrency as CurrencyType,
     );
+
+    // Generate unique references for both transactions
+    const debitReference = generateTransactionReference();
+    const creditReference = generateTransactionReference();
 
     // Create debit transaction for source account
     const debitTransaction = new Transaction({
-      userId: targetUserId,
-      bankAccountId: sourceAccount._id,
-      type: "conversion_debit",
-      amount: -convertFromAmount, // Negative for debit
-      currency: convertFromAccountCurrency,
-      description: `Currency conversion: ${convertFromAmount} ${convertFromAccountCurrency} → ${actualConvertedAmount} ${convertToAccountCurrency}`,
+      date: new Date(),
       status: "completed",
-      balanceAfter: sourceAccount.balance,
+      reference: debitReference,
+      from: user._id,
+      to: user._id,
+      transactionType: "convert",
+      currency: convertFromAccountCurrency,
+      amount: convertFromAmount, // Positive amount
       metadata: {
         conversionPair: currencyPairs,
         exchangeRate: exchangeRate,
         convertedAmount: actualConvertedAmount,
         convertedCurrency: convertToAccountCurrency,
         transactionType: "currency_conversion",
+        description: `Currency conversion: ${convertFromAmount} ${convertFromAccountCurrency} → ${actualConvertedAmount} ${convertToAccountCurrency}`,
+        direction: "debit", // Indicate this is a debit
       },
     });
 
     // Create credit transaction for target account
     const creditTransaction = new Transaction({
-      userId: targetUserId,
-      bankAccountId: targetAccount._id,
-      type: "conversion_credit",
-      amount: actualConvertedAmount, // Positive for credit
-      currency: convertToAccountCurrency,
-      description: `Currency conversion received: ${convertFromAmount} ${convertFromAccountCurrency} → ${actualConvertedAmount} ${convertToAccountCurrency}`,
+      date: new Date(),
       status: "completed",
-      balanceAfter: targetAccount.balance,
+      reference: creditReference,
+      from: user._id,
+      to: user._id,
+      transactionType: "convert",
+      currency: convertToAccountCurrency,
+      amount: actualConvertedAmount, // Positive amount
       metadata: {
         conversionPair: currencyPairs,
         exchangeRate: exchangeRate,
         originalAmount: convertFromAmount,
         originalCurrency: convertFromAccountCurrency,
         transactionType: "currency_conversion",
+        description: `Currency conversion received: ${convertFromAmount} ${convertFromAccountCurrency} → ${actualConvertedAmount} ${convertToAccountCurrency}`,
+        direction: "credit", // Indicate this is a credit
       },
     });
 
@@ -325,12 +335,12 @@ export const POST = async (request: Request) => {
           },
           updatedAccounts: {
             sourceAccount: {
-              currency: sourceAccount.currency,
+              accountCurrency: sourceAccount.accountCurrency,
               balance: sourceAccount.balance,
               previousBalance: sourceAccount.balance + convertFromAmount,
             },
             targetAccount: {
-              currency: targetAccount.currency,
+              accountCurrency: targetAccount.accountCurrency,
               balance: targetAccount.balance,
               previousBalance: targetAccount.balance - actualConvertedAmount,
             },
@@ -338,19 +348,17 @@ export const POST = async (request: Request) => {
           transactions: {
             debitTransaction: {
               id: debitTransaction._id,
-              type: debitTransaction.type,
+              reference: debitTransaction.reference,
+              transactionType: debitTransaction.transactionType,
               amount: debitTransaction.amount,
               currency: debitTransaction.currency,
-              description: debitTransaction.description,
-              balanceAfter: debitTransaction.balanceAfter,
             },
             creditTransaction: {
               id: creditTransaction._id,
-              type: creditTransaction.type,
+              reference: creditTransaction.reference,
+              transactionType: creditTransaction.transactionType,
               amount: creditTransaction.amount,
               currency: creditTransaction.currency,
-              description: creditTransaction.description,
-              balanceAfter: creditTransaction.balanceAfter,
             },
           },
         },
@@ -360,18 +368,41 @@ export const POST = async (request: Request) => {
         headers: { "Content-Type": "application/json" },
       },
     );
+  } catch (error: any) {
+    // Abort transaction on error if session exists
+    if (session) {
+      await session.abortTransaction();
+      await session.endSession();
+    }
 
-  } catch (error) {
-    // Rollback transaction on any error
-    await session.abortTransaction();
-    
-    console.error("Currency conversion error:", error);
-    
+    console.error("Error converting currency:", error);
+    console.error("Error stack:", error.stack);
+    console.error("Error details:", {
+      message: error.message,
+      name: error.name,
+      code: error.code,
+    });
+
+    // Handle MongoDB duplicate key error
+    if (error.code === 11000) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "Transaction reference conflict. Please try again",
+        }),
+        {
+          status: 409,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
     return new Response(
       JSON.stringify({
         success: false,
-        message: "Internal server error during currency conversion",
-        error: error instanceof Error ? error.message : "Unknown error",
+        message:
+          "An unexpected error occurred during the conversion. Please try again later",
+        error: error.message,
       }),
       {
         status: 500,
@@ -379,7 +410,9 @@ export const POST = async (request: Request) => {
       },
     );
   } finally {
-    // Always end the session
-    await session.endSession();
+    // End session if it exists
+    if (session) {
+      await session.endSession();
+    }
   }
 };
