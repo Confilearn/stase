@@ -56,9 +56,9 @@ const SignIn = () => {
       return;
     }
 
-    setIsSubmitting(true);
-
     if (!isLoaded) return;
+
+    setIsSubmitting(true);
 
     try {
       const result = await signIn.create({

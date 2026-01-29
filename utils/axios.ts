@@ -1,6 +1,10 @@
 import Axios from "axios";
 
-const baseURL = __DEV__ ? "" : "https://your-production-url.com";
+const baseURL = __DEV__ ? "" : process.env.EXPO_PUBLIC_API_URL;
+
+if (!baseURL) {
+  console.warn("API base URL is not configured");
+}
 
 export const axiosInstance = Axios.create({
   baseURL,
