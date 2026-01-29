@@ -1,12 +1,15 @@
 import ChevronLeft from "@/components/ChevronLeft";
 import CustomButton from "@/components/CustomButton";
 import CustomInput from "@/components/CustomInput";
+import { useAuthStore } from "@/store/auth.store";
 import { useThemeStore } from "@/store/theme.store";
+import { useUserStore } from "@/store/user.store";
 import { tokenStorage } from "@/utils/tokenStorage";
 import { useAuth, useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -49,6 +52,8 @@ const signUpSchema = z.object({
 
 const SignUp = () => {
   const { setTheme } = useThemeStore();
+  const { updateUserFromAPI } = useUserStore();
+  const { setIsAuthenticated } = useAuthStore();
   const router = useRouter();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,7 +73,7 @@ const SignUp = () => {
   });
 
   const { isLoaded, signUp, setActive } = useSignUp();
-  const { getToken } = useAuth();
+  const { getToken, userId } = useAuth();
 
   const submit = async () => {
     setError({
@@ -101,24 +106,117 @@ const SignUp = () => {
     if (!isLoaded) return;
 
     try {
+      // Check if user is already signed in but missing local data
+      const existingToken = await getToken();
+      const existingUserId = userId;
+      if (existingToken && existingUserId) {
+        console.log("User already has token, checking if user data exists...");
+        const { user } = useUserStore.getState();
+
+        if (!user) {
+          console.log(
+            "Token exists but no local user data, creating user in DB...",
+          );
+          const response = await fetch("/api/createAccount", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${existingUserId}`,
+            },
+            body: JSON.stringify({
+              firstName: form.firstName.toLowerCase().trim(),
+              lastName: form.lastName.toLowerCase().trim(),
+              username: form.username.toLowerCase().trim(),
+              email: form.email.toLowerCase().trim(),
+              clerkUserId: existingUserId,
+            }),
+          });
+
+          const responseData = await response.json();
+
+          if (response.status === 201) {
+            await updateUserFromAPI(responseData);
+            setIsAuthenticated(true);
+            Alert.alert("Success", "Account setup completed!");
+            router.replace("/(app)");
+            return;
+          }
+        } else {
+          // User already exists locally, redirect to app
+          Alert.alert("Info", "You're already signed in!");
+          router.replace("/(app)");
+          return;
+        }
+      }
+
+      // Step 1: Create Clerk account
       const result = await signUp.create({
         emailAddress: form?.email,
         password: form?.password,
       });
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
 
-        // Get and store the token
-        const token = await getToken();
-        if (token) {
-          await tokenStorage.saveToken(token);
-        }
+      console.log("Clerk account created:", result);
 
-        router.replace("/(app)");
+      // Step 2: Skip session activation for now, rely on token
+      // if (result.createdSessionId) {
+      //   await setActive({ session: result.createdSessionId });
+      //   console.log("Session activated successfully");
+      // }
+
+      // Step 3: Get and store the clerkUserId (not the Clerk token)
+      const clerkUserId = userId || result.createdUserId;
+      if (clerkUserId) {
+        await tokenStorage.saveToken(clerkUserId);
+        console.log("ClerkUserId saved successfully");
+      } else {
+        console.warn("No clerkUserId received after account creation");
       }
-      console.log(result);
+
+      // Step 4: Create User in DB
+      console.log("Creating user in database...");
+      const response = await fetch("/api/createAccount", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(clerkUserId && { Authorization: `Bearer ${clerkUserId}` }),
+        },
+        body: JSON.stringify({
+          firstName: form.firstName.toLowerCase().trim(),
+          lastName: form.lastName.toLowerCase().trim(),
+          username: form.username.toLowerCase().trim(),
+          email: form.email.toLowerCase().trim(),
+          clerkUserId: result.createdUserId,
+        }),
+      });
+
+      const responseData = await response.json();
+      console.log("Database response:", response.status, responseData);
+
+      if (response.status === 201) {
+        // Step 5: Store user data in local store
+        await updateUserFromAPI(responseData);
+        console.log("User data stored locally");
+
+        // Step 6: Set authentication status to allow navigation to protected routes
+        setIsAuthenticated(true);
+        console.log("Authentication status set to true");
+
+        Alert.alert("Success", "Account created successfully!");
+        router.replace("/(app)");
+      } else {
+        throw new Error("Failed to create account in database");
+      }
     } catch (error: any) {
-      console.log(error);
+      console.error("Sign-up error:", error);
+
+      // Handle different error types
+      if (error.response?.data?.error) {
+        Alert.alert("Error", error.response.data.error);
+      } else if (error.errors?.[0]?.message) {
+        Alert.alert("Error", error.errors[0].message);
+      } else {
+        Alert.alert("Error", "An unexpected error occurred during sign up.");
+      }
     } finally {
       setIsSubmitting(false);
     }

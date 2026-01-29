@@ -1,15 +1,19 @@
+import { useAuthStore } from "@/store/auth.store";
 import { useThemeStore } from "@/store/theme.store";
+import { useUserStore } from "@/store/user.store";
 import { tokenStorage } from "@/utils/tokenStorage";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import "./global.css";
 
 export default function RootLayout() {
   const { getTheme } = useThemeStore();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { loadUserData } = useUserStore();
+  const { isAuthenticated, setIsAuthenticated, checkAuthStatus } =
+    useAuthStore();
 
   // Import fonts
   const [fontsLoaded, error] = useFonts({
@@ -21,20 +25,30 @@ export default function RootLayout() {
 
   // Fetch token from AsyncStorage on app start
   useEffect(() => {
-    const checkAuthToken = async () => {
+    const initializeAuth = async () => {
       try {
-        const token = await tokenStorage.removeToken();
+        // Check auth status from store first
+        await checkAuthStatus();
 
-        console.log("Token:", token);
-        setIsAuthenticated(false);
+        // Then verify with token storage (clerkUserId)
+        const clerkUserId = await tokenStorage.getToken();
+        console.log("Stored clerkUserId:", clerkUserId);
+
+        // Set auth based on clerkUserId existence
+        setIsAuthenticated(!!clerkUserId);
+
+        // Load user data if clerkUserId exists
+        if (clerkUserId) {
+          await loadUserData();
+        }
       } catch (error) {
         console.error("Error checking auth token:", error);
         setIsAuthenticated(false);
       }
     };
 
-    checkAuthToken();
-  }, []);
+    initializeAuth();
+  }, [checkAuthStatus, loadUserData, setIsAuthenticated]);
 
   // Show app only when fonts is loaded
   useEffect(() => {
@@ -48,7 +62,7 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, error]);
 
-  if (!fontsLoaded || isAuthenticated === null) return null;
+  if (!fontsLoaded) return null;
 
   return (
     <ClerkProvider tokenCache={tokenCache}>
