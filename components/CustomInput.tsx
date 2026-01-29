@@ -34,7 +34,7 @@ const CustomInput = ({
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
         onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
         className={cn(
           "p-3 border-content-200 dark:border-content-400 rounded-xl text-[16px] text-content-100 dark:text-content-500 font-metropolis-medium pt-4",
           isFocused
