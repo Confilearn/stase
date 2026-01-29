@@ -1,4 +1,4 @@
-import { connectToDatabase } from "@/lib/mongodb";
+import { ensureDatabaseConnection } from "@/lib/databaseHealth";
 import { BankAccount, SupportedCurrency } from "@/models/BankAccount";
 import { Transaction } from "@/models/Transaction";
 import { User } from "@/models/User";
@@ -11,6 +11,11 @@ import {
   getSwiftCode,
 } from "@/utils/createAccount";
 import bcrypt from "bcryptjs";
+
+// Global variable to cache the database connection
+declare global {
+  var mongoose: any;
+}
 
 interface CreateAccountRequest {
   firstName: string;
@@ -38,24 +43,50 @@ export const POST = async (request: Request) => {
       );
     }
 
-    // Connect to database
-    const dbResult = await connectToDatabase();
+    // Ensure database connection with retry logic
+    console.log("Starting database connection check...");
+    const dbResult = await ensureDatabaseConnection(3);
+    console.log("Database connection result:", dbResult);
+
     if (!dbResult.success) {
       return new Response(
         JSON.stringify({
-          error: dbResult.error || "Database connection failed",
+          error:
+            dbResult.error ||
+            "Database connection failed after multiple attempts",
         }),
         {
-          status: 500,
+          status: 503, // Service Unavailable instead of 500
           headers: { "Content-Type": "application/json" },
         },
       );
     }
 
-    // Check for existing user
-    const existingUser = await User.findOne({
-      $or: [{ email }, { username }],
-    });
+    // Log connection state
+    if (global.mongoose) {
+      console.log(
+        "Connection readyState:",
+        global.mongoose.connection.readyState,
+      );
+      console.log("Connection host:", global.mongoose.connection.host);
+    }
+
+    // Set a timeout for database operations
+    const operationTimeout = 12000; // Increased to 12 seconds
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(
+        () => reject(new Error("Database operation timeout")),
+        operationTimeout,
+      ),
+    );
+
+    // Check for existing user with timeout
+    const existingUser = await Promise.race([
+      User.findOne({
+        $or: [{ email }, { username }],
+      }),
+      timeoutPromise,
+    ]);
 
     if (existingUser) {
       return new Response(
