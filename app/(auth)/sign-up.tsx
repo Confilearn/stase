@@ -1,9 +1,9 @@
+import ChevronLeft from "@/components/ChevronLeft";
 import CustomButton from "@/components/CustomButton";
 import CustomInput from "@/components/CustomInput";
 import { useThemeStore } from "@/store/theme.store";
 import { tokenStorage } from "@/utils/tokenStorage";
 import { useAuth, useSignUp } from "@clerk/clerk-expo";
-import Fontisto from "@expo/vector-icons/Fontisto";
 import { Link, useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -11,7 +11,6 @@ import {
   Platform,
   ScrollView,
   Text,
-  useColorScheme,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -49,7 +48,6 @@ const signUpSchema = z.object({
 });
 
 const SignUp = () => {
-  const colorScheme = useColorScheme();
   const { setTheme } = useThemeStore();
   const router = useRouter();
 
@@ -138,11 +136,7 @@ const SignUp = () => {
         >
           <View className="flex-row gap-5 mt-4 items-center">
             <Link href={"/welcome"}>
-              <Fontisto
-                name="angle-left"
-                size={20}
-                color={colorScheme === "dark" ? "white" : "black"}
-              />
+              <ChevronLeft />
             </Link>
             <Text
               onPress={() => setTheme("system")}
