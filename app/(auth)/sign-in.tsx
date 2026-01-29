@@ -79,6 +79,10 @@ const SignIn = () => {
       }
     } catch (error: any) {
       console.log(error);
+      // Clerk errors have an errors array with messages
+      const clerkError = error?.errors?.[0]?.message || "Sign in failed. Please try again.";
+      setError((prev) => ({ ...prev, password: clerkError }));
+    } finally {
     } finally {
       setIsSubmitting(false);
     }
