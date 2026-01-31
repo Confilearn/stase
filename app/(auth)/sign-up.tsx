@@ -8,7 +8,7 @@ import { useUserStore } from "@/store/user.store";
 import { tokenStorage } from "@/utils/tokenStorage";
 import { useAuth, useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -61,19 +61,23 @@ const SignUp = () => {
   const [showPinModal, setShowPinModal] = useState(false);
   const [createdUserData, setCreatedUserData] = useState<any>(null);
   const [form, setForm] = useState({
+    email: "",
+    password: "",
     firstName: "",
     lastName: "",
     username: "",
-    email: "",
-    password: "",
   });
   const [error, setError] = useState({
+    email: "",
+    password: "",
     firstName: "",
     lastName: "",
     username: "",
-    email: "",
-    password: "",
   });
+
+  useEffect(() => {
+    console.log("PIN modal visible:", showPinModal);
+  }, [showPinModal]);
 
   const { isLoaded, signUp, setActive } = useSignUp();
   const { getToken, userId } = useAuth();
@@ -191,9 +195,9 @@ const SignUp = () => {
 
           if (response.status === 201) {
             await updateUserFromAPI(responseData);
-            setIsAuthenticated(true);
             setCreatedUserData(responseData);
             setShowPinModal(true);
+            // Note: setIsAuthenticated will be called only after PIN is successfully created
             return;
           }
         } else {
@@ -252,13 +256,12 @@ const SignUp = () => {
         await updateUserFromAPI(responseData);
         console.log("User data stored locally");
 
-        // Step 6: Set authentication status to allow navigation to protected routes
-        setIsAuthenticated(true);
-        console.log("Authentication status set to true");
-
-        // Step 7: Store user data and show PIN modal
+        // Step 6: Store user data and show PIN modal (don't set authenticated yet)
         setCreatedUserData(responseData);
+        console.log("About to show PIN modal...");
         setShowPinModal(true);
+        console.log("PIN modal state set to true");
+        // Note: setIsAuthenticated will be called only after PIN is successfully created
       } else {
         throw new Error("Failed to create account in database");
       }
@@ -355,6 +358,7 @@ const SignUp = () => {
       <PinModal
         visible={showPinModal}
         onClose={() => {
+          console.log("PIN modal onClose called");
           setShowPinModal(false);
           // Optional: You might want to handle what happens when user closes the modal
           // For now, we'll just close it without redirecting
