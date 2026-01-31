@@ -1,9 +1,9 @@
 import {
-  serverErrorResponse,
-  unauthorizedResponse,
-  verifyAuth,
+    serverErrorResponse,
+    unauthorizedResponse,
+    verifyAuth,
 } from "@/lib/auth";
-import { connectToDatabase } from "@/lib/mongodb";
+import { connectDB } from "@/lib/mongodb";
 import { BankAccount } from "@/models/BankAccount";
 import { Transaction } from "@/models/Transaction";
 import bcrypt from "bcryptjs";
@@ -111,9 +111,16 @@ export const POST = async (request: Request) => {
     }
 
     // Connect to database
-    const dbResult = await connectToDatabase();
-    if (!dbResult.success) {
-      return serverErrorResponse("Database connection failed");
+    const { success, conn } = await connectDB();
+    
+    if (!success || !conn) {
+      return new Response(
+        JSON.stringify({ error: "Database connection failed" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
 
     // Find user's bank account for the specified currency

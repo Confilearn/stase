@@ -1,16 +1,16 @@
 import {
-  serverErrorResponse,
-  unauthorizedResponse,
-  verifyAuth,
+    serverErrorResponse,
+    unauthorizedResponse,
+    verifyAuth,
 } from "@/lib/auth";
-import { connectToDatabase } from "@/lib/mongodb";
+import { connectDB } from "@/lib/mongodb";
 import { BankAccount, SupportedCurrency } from "@/models/BankAccount";
 import { Transaction } from "@/models/Transaction";
 import {
-  convertCurrency,
-  SupportedCurrency as CurrencyType,
-  getExchangeRate,
-  isValidCurrencyPair,
+    convertCurrency,
+    SupportedCurrency as CurrencyType,
+    getExchangeRate,
+    isValidCurrencyPair,
 } from "@/utils/currencyRates";
 import { generateTransactionReference } from "@/utils/TxReference";
 import mongoose from "mongoose";
@@ -149,17 +149,15 @@ export const POST = async (request: Request) => {
     // ============= DATABASE OPERATIONS =============
 
     // Connect to database
-    const dbResult = await connectToDatabase();
-    if (!dbResult.success) {
+    const { success, conn } = await connectDB();
+    
+    if (!success || !conn) {
       return new Response(
-        JSON.stringify({
-          success: false,
-          message: "Database connection failed. Please try again later",
-        }),
+        JSON.stringify({ error: "Database connection failed" }),
         {
           status: 500,
           headers: { "Content-Type": "application/json" },
-        },
+        }
       );
     }
 

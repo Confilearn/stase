@@ -1,12 +1,7 @@
-import { ensureDatabaseConnection } from "@/lib/databaseHealth";
-import { BankAccount, SupportedCurrency } from "@/models/BankAccount";
+import { connectDB } from "@/lib/mongodb";
+import { BankAccount } from "@/models/BankAccount";
 import { Transaction } from "@/models/Transaction";
 import { User } from "@/models/User";
-
-// Global variable to cache the database connection
-declare global {
-  var mongoose: any;
-}
 
 export const POST = async (request: Request) => {
   try {
@@ -45,24 +40,19 @@ export const POST = async (request: Request) => {
       );
     }
 
-    // Ensure database connection
-    console.log("Starting database connection check...");
-    const dbResult = await ensureDatabaseConnection(3);
-    console.log("Database connection result:", dbResult);
-
-    if (!dbResult.success) {
+    // Connect to database
+    const { success, conn } = await connectDB();
+    
+    if (!success || !conn) {
       return new Response(
-        JSON.stringify({
-          error:
-            dbResult.error ||
-            "Database connection failed after multiple attempts",
-        }),
+        JSON.stringify({ error: "Database connection failed" }),
         {
-          status: 503,
+          status: 500,
           headers: { "Content-Type": "application/json" },
-        },
+        }
       );
     }
+    console.log("Database connected successfully");
 
     // Find user by clerkUserId
     const user = await User.findOne({ clerkUserId: userId });

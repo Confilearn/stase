@@ -1,3 +1,4 @@
+import { DatabaseProvider } from "@/contexts/DatabaseContext";
 import { useAuthStore } from "@/store/auth.store";
 import { useThemeStore } from "@/store/theme.store";
 import { useUserStore } from "@/store/user.store";
@@ -7,7 +8,6 @@ import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
 import { useEffect } from "react";
-import { DatabaseProvider } from "../contexts/DatabaseContext";
 import "./global.css";
 
 export default function RootLayout() {

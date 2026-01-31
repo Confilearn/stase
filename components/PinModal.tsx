@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import {
-  Modal,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
+    ActivityIndicator,
+    Dimensions,
+    Modal,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 
 interface PinModalProps {
@@ -13,6 +14,7 @@ interface PinModalProps {
   onClose: () => void;
   onSuccess: (pin: string) => void;
   title?: string;
+  isLoading?: boolean;
 }
 
 const { width } = Dimensions.get("window");
@@ -22,6 +24,7 @@ const PinModal: React.FC<PinModalProps> = ({
   onClose,
   onSuccess,
   title = "Create your Stase PIN",
+  isLoading = false,
 }) => {
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
@@ -29,6 +32,8 @@ const PinModal: React.FC<PinModalProps> = ({
 
   // Handle number press
   const handleNumberPress = (num: string) => {
+    if (isLoading) return; // Prevent input when loading
+    
     if (isConfirmStep) {
       if (confirmPin.length < 4) {
         const newConfirmPin = confirmPin + num;
@@ -160,9 +165,16 @@ const PinModal: React.FC<PinModalProps> = ({
           
           {renderPinIndicators()}
           
-          <View style={styles.numberPad}>
-            {renderNumberPad()}
-          </View>
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#3b82f6" />
+              <Text style={styles.loadingText}>Setting up your PIN...</Text>
+            </View>
+          ) : (
+            <View style={styles.numberPad}>
+              {renderNumberPad()}
+            </View>
+          )}
         </View>
       </View>
     </Modal>
@@ -233,6 +245,18 @@ const styles = StyleSheet.create({
   backspaceText: {
     fontSize: 20,
     color: "#dc2626",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
   },
 });
 

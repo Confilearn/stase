@@ -1,4 +1,4 @@
-import { ensureDatabaseConnection } from "@/lib/databaseHealth";
+import { connectDB } from "@/lib/mongodb";
 import { BankAccount, SupportedCurrency } from "@/models/BankAccount";
 import { Transaction } from "@/models/Transaction";
 import { User } from "@/models/User";
@@ -10,11 +10,6 @@ import {
   getBankName,
   getSwiftCode,
 } from "@/utils/createAccount";
-
-// Global variable to cache the database connection
-declare global {
-  var mongoose: any;
-}
 
 interface CreateAccountRequest {
   firstName: string;
@@ -42,32 +37,18 @@ export const POST = async (request: Request) => {
       );
     }
 
-    // Ensure database connection with retry logic
-    console.log("Starting database connection check...");
-    const dbResult = await ensureDatabaseConnection(3);
-    console.log("Database connection result:", dbResult);
+   const { success, conn } = await connectDB()
 
-    if (!dbResult.success) {
+    if (!success || !conn) {
       return new Response(
         JSON.stringify({
-          error:
-            dbResult.error ||
-            "Database connection failed after multiple attempts",
+          error: "Database connection failed",
         }),
         {
-          status: 503, // Service Unavailable instead of 500
+          status: 500,
           headers: { "Content-Type": "application/json" },
         },
       );
-    }
-
-    // Log connection state
-    if (global.mongoose) {
-      console.log(
-        "Connection readyState:",
-        global.mongoose.connection.readyState,
-      );
-      console.log("Connection host:", global.mongoose.connection.host);
     }
 
     // Check for existing user
@@ -168,49 +149,6 @@ export const POST = async (request: Request) => {
     });
   } catch (error: any) {
     console.error("Error creating account:", error);
-
-    // Handle specific database connection errors
-    if (
-      error.message &&
-      error.message.includes("before initial connection is complete")
-    ) {
-      return new Response(
-        JSON.stringify({
-          error: "Database connection error. Please try again in a moment.",
-        }),
-        {
-          status: 503,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    // Handle timeout errors
-    if (error.message && error.message.includes("timeout")) {
-      return new Response(
-        JSON.stringify({
-          error: "Request timed out. Please try again.",
-        }),
-        {
-          status: 408,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    // Handle MongoDB duplicate key error
-    if (error.code === 11000) {
-      return new Response(
-        JSON.stringify({
-          error: "User with this email or username already exists",
-        }),
-        {
-          status: 409,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-
     return new Response(
       JSON.stringify({
         error: error.message || "Internal server error",

@@ -3,6 +3,7 @@ import {
   unauthorizedResponse,
   verifyAuth,
 } from "@/lib/auth";
+import { connectDB } from "@/lib/mongodb";
 import bcrypt from "bcryptjs";
 
 interface CreatePinRequest {
@@ -11,6 +12,12 @@ interface CreatePinRequest {
 
 export const POST = async (request: Request) => {
   try {
+    // Ensure database connection
+    const dbConnection = await connectDB();
+    if (!dbConnection.success || !dbConnection.conn) {
+      return serverErrorResponse("Database connection failed");
+    }
+
     // Authenticate user
     const authResult = await verifyAuth(request);
     if (!authResult.authenticated || !authResult.user) {

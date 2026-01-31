@@ -9,12 +9,12 @@ import { useAuth, useSignIn } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { z } from "zod";
@@ -40,20 +40,25 @@ const SignIn = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
+  const [isCreatingPin, setIsCreatingPin] = useState(false);
   const [signedInUserData, setSignedInUserData] = useState<any>(null);
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState({ email: "", password: "" });
 
   // Handle PIN creation success
   const handlePinSuccess = async (pin: string) => {
+    setIsCreatingPin(true);
     try {
       if (!signedInUserData || !signedInUserData.user.clerkUserId) {
         Alert.alert(
           "Error",
           "User data not found. Please try signing in again.",
         );
+        setShowPinModal(false);
         return;
       }
+
+      console.log("Setting transaction PIN for user:", signedInUserData.user.clerkUserId);
 
       // Call API to set transaction PIN
       const response = await fetch("/api/createUserTransactionPin", {
@@ -65,8 +70,10 @@ const SignIn = () => {
         body: JSON.stringify({ pin }),
       });
 
+      const responseData = await response.json();
+
       if (response.ok) {
-        const pinData = await response.json();
+        console.log("PIN set successfully:", responseData);
 
         // Update user data with PIN status
         const updatedUserData = {
@@ -83,15 +90,20 @@ const SignIn = () => {
         Alert.alert("Success", "PIN created successfully!");
         router.replace("/(app)");
       } else {
-        const errorData = await response.json();
+        console.error("PIN API error:", responseData);
         Alert.alert(
           "Error",
-          errorData.error || "Failed to set PIN. Please try again.",
+          responseData.error || "Failed to set PIN. Please try again.",
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error setting PIN:", error);
-      Alert.alert("Error", "Failed to set PIN. Please try again.");
+      Alert.alert(
+        "Connection Error", 
+        "Unable to connect to server. Please check your connection and try again."
+      );
+    } finally {
+      setIsCreatingPin(false);
     }
   };
 
@@ -254,6 +266,7 @@ const SignIn = () => {
       {/* PIN Creation Modal */}
       <PinModal
         visible={showPinModal}
+        isLoading={isCreatingPin}
         onClose={() => {
           setShowPinModal(false);
           // Optional: You might want to handle what happens when user closes the modal
