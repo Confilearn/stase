@@ -22,6 +22,7 @@ interface User {
   email: string;
   clerkUserId: string;
   createdAt: string;
+  hasTransactionPin?: boolean;
 }
 
 interface Transaction {
@@ -55,6 +56,8 @@ interface UserState {
     bankAccounts: BankAccount[];
     transactions?: Transaction[];
   }) => Promise<void>;
+  checkTransactionPinStatus: () => Promise<boolean>;
+  setTransactionPinStatus: (hasPin: boolean) => void;
 }
 
 const USER_STORAGE_KEY = "@user_data";
@@ -178,6 +181,44 @@ export const useUserStore = create<UserState>((set, get) => ({
       ]);
     } catch (error) {
       console.error("Failed to save user data from API:", error);
+    }
+  },
+
+  checkTransactionPinStatus: async () => {
+    try {
+      const { user } = get();
+      if (!user) return false;
+
+      const response = await fetch("/api/checkTransactionPin", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.clerkUserId}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        get().setTransactionPinStatus(data.hasTransactionPin);
+        return data.hasTransactionPin;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error checking transaction PIN status:", error);
+      return false;
+    }
+  },
+
+  setTransactionPinStatus: (hasPin: boolean) => {
+    const { user } = get();
+    if (user) {
+      const updatedUser = { ...user, hasTransactionPin: hasPin };
+      set({ user: updatedUser });
+      AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser)).catch(
+        (error) => {
+          console.error("Failed to save updated user data:", error);
+        },
+      );
     }
   },
 }));

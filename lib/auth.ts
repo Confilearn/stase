@@ -1,5 +1,5 @@
 import { User } from "@/models/User";
-import { connectToDatabase } from "./mongodb";
+import { connectDB } from "./mongodb";
 
 type AuthStatus = "success" | "unauthorized" | "server_error";
 
@@ -45,8 +45,9 @@ export async function verifyAuth(request: Request): Promise<AuthResult> {
     }
 
     // Connect to database
-    const dbResult = await connectToDatabase();
-    if (!dbResult.success) {
+    const { success, conn } = await connectDB();
+    
+    if (!success || !conn) {
       return {
         authenticated: false,
         status: "server_error",

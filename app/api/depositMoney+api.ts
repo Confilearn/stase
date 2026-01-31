@@ -1,9 +1,9 @@
 import {
-  serverErrorResponse,
-  unauthorizedResponse,
-  verifyAuth,
+    serverErrorResponse,
+    unauthorizedResponse,
+    verifyAuth,
 } from "@/lib/auth";
-import { connectToDatabase } from "@/lib/mongodb";
+import { connectDB } from "@/lib/mongodb";
 import { BankAccount } from "@/models/BankAccount";
 import { Transaction } from "@/models/Transaction";
 import bcrypt from "bcryptjs";
@@ -124,9 +124,16 @@ export const POST = async (request: Request) => {
     }
 
     // Connect to database
-    const dbResult = await connectToDatabase();
-    if (!dbResult.success) {
-      return serverErrorResponse("Database connection failed");
+    const { success, conn } = await connectDB();
+    
+    if (!success || !conn) {
+      return new Response(
+        JSON.stringify({ error: "Database connection failed" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
 
     // Find user's bank account for the specified currency
@@ -151,13 +158,13 @@ export const POST = async (request: Request) => {
     const updatedAccount = await BankAccount.findOneAndUpdate(
       { userId: user._id, accountCurrency: accountCurrency },
       { $inc: { balance: amount } },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedAccount) {
       return new Response(
         JSON.stringify({ error: `No ${accountCurrency} account found` }),
-        { status: 404, headers: { "Content-Type": "application/json" } }
+        { status: 404, headers: { "Content-Type": "application/json" } },
       );
     }
 

@@ -1,4 +1,4 @@
-import { ensureDatabaseConnection } from "@/lib/databaseHealth";
+import { connectDB } from "@/lib/mongodb";
 import { BankAccount, SupportedCurrency } from "@/models/BankAccount";
 import { Transaction } from "@/models/Transaction";
 import { User } from "@/models/User";
@@ -10,12 +10,6 @@ import {
   getBankName,
   getSwiftCode,
 } from "@/utils/createAccount";
-import bcrypt from "bcryptjs";
-
-// Global variable to cache the database connection
-declare global {
-  var mongoose: any;
-}
 
 interface CreateAccountRequest {
   firstName: string;
@@ -34,7 +28,7 @@ export const POST = async (request: Request) => {
       return new Response(
         JSON.stringify({
           error:
-            "Missing required fields: firstName, lastName, username, email",
+            "Missing required fields: firstName, lastName, username, email, clerkUserId",
         }),
         {
           status: 400,
@@ -43,50 +37,24 @@ export const POST = async (request: Request) => {
       );
     }
 
-    // Ensure database connection with retry logic
-    console.log("Starting database connection check...");
-    const dbResult = await ensureDatabaseConnection(3);
-    console.log("Database connection result:", dbResult);
+   const { success, conn } = await connectDB()
 
-    if (!dbResult.success) {
+    if (!success || !conn) {
       return new Response(
         JSON.stringify({
-          error:
-            dbResult.error ||
-            "Database connection failed after multiple attempts",
+          error: "Database connection failed",
         }),
         {
-          status: 503, // Service Unavailable instead of 500
+          status: 500,
           headers: { "Content-Type": "application/json" },
         },
       );
     }
 
-    // Log connection state
-    if (global.mongoose) {
-      console.log(
-        "Connection readyState:",
-        global.mongoose.connection.readyState,
-      );
-      console.log("Connection host:", global.mongoose.connection.host);
-    }
-
-    // Set a timeout for database operations
-    const operationTimeout = 12000; // Increased to 12 seconds
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(
-        () => reject(new Error("Database operation timeout")),
-        operationTimeout,
-      ),
-    );
-
-    // Check for existing user with timeout
-    const existingUser = await Promise.race([
-      User.findOne({
-        $or: [{ email }, { username }],
-      }),
-      timeoutPromise,
-    ]);
+    // Check for existing user
+    const existingUser = await User.findOne({
+      $or: [{ email }, { username }],
+    });
 
     if (existingUser) {
       return new Response(
@@ -100,17 +68,12 @@ export const POST = async (request: Request) => {
       );
     }
 
-    // Create user
-    const defaultPin = "1234";
-
-    const hashedPin = await bcrypt.hash(defaultPin, 12);
-
+    // Create user (transactionPin will be set later via PIN modal)
     const user = new User({
       firstName,
       lastName,
       username,
       email,
-      transactionPin: hashedPin,
       clerkUserId,
     });
 
@@ -138,9 +101,9 @@ export const POST = async (request: Request) => {
     }
 
     // Get transactions
-    const transactions = await Transaction.find({
+    const transactions = (await Transaction.find({
       $or: [{ from: savedUser._id }, { to: savedUser._id }],
-    });
+    })) as any[];
 
     // Build response
     const response = {
@@ -185,19 +148,6 @@ export const POST = async (request: Request) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error: any) {
-    // Handle MongoDB duplicate key error
-    if (error.code === 11000) {
-      return new Response(
-        JSON.stringify({
-          error: "User with this email or username already exists",
-        }),
-        {
-          status: 409,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-
     console.error("Error creating account:", error);
     return new Response(
       JSON.stringify({

@@ -1,20 +1,21 @@
 import ChevronLeft from "@/components/ChevronLeft";
 import CustomButton from "@/components/CustomButton";
 import CustomInput from "@/components/CustomInput";
+import PinModal from "@/components/PinModal";
 import { useAuthStore } from "@/store/auth.store";
 import { useThemeStore } from "@/store/theme.store";
 import { useUserStore } from "@/store/user.store";
 import { tokenStorage } from "@/utils/tokenStorage";
 import { useAuth, useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { z } from "zod";
@@ -57,23 +58,93 @@ const SignUp = () => {
   const router = useRouter();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [isCreatingPin, setIsCreatingPin] = useState(false);
+  const [createdUserData, setCreatedUserData] = useState<any>(null);
   const [form, setForm] = useState({
+    email: "",
+    password: "",
     firstName: "",
     lastName: "",
     username: "",
-    email: "",
-    password: "",
   });
   const [error, setError] = useState({
+    email: "",
+    password: "",
     firstName: "",
     lastName: "",
     username: "",
-    email: "",
-    password: "",
   });
+
+  useEffect(() => {
+    console.log("PIN modal visible:", showPinModal);
+  }, [showPinModal]);
 
   const { isLoaded, signUp, setActive } = useSignUp();
   const { getToken, userId } = useAuth();
+
+  // Handle PIN creation success
+  const handlePinSuccess = async (pin: string) => {
+    setIsCreatingPin(true);
+    try {
+      if (!createdUserData || !createdUserData.user.clerkUserId) {
+        Alert.alert(
+          "Error",
+          "User data not found. Please try signing up again.",
+        );
+        setShowPinModal(false);
+        return;
+      }
+
+      console.log("Setting transaction PIN for user:", createdUserData.user.clerkUserId);
+
+      // Call API to set transaction PIN
+      const response = await fetch("/api/createUserTransactionPin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${createdUserData.user.clerkUserId}`,
+        },
+        body: JSON.stringify({ pin }),
+      });
+
+      const responseData = await response.json();
+
+      if (response.ok) {
+        console.log("PIN set successfully:", responseData);
+
+        // Update user data with PIN status
+        const updatedUserData = {
+          ...createdUserData,
+          user: {
+            ...createdUserData.user,
+            hasTransactionPin: true,
+          },
+        };
+
+        await updateUserFromAPI(updatedUserData);
+        setIsAuthenticated(true);
+
+        setShowPinModal(false);
+        Alert.alert("Success", "Account created successfully!");
+        router.replace("/(app)");
+      } else {
+        console.error("PIN API error:", responseData);
+        Alert.alert(
+          "Error",
+          responseData.error || "Failed to set PIN. Please try again.",
+        );
+      }
+    } catch (error: any) {
+      console.error("Error setting PIN:", error);
+      Alert.alert(
+        "Connection Error", 
+        "Unable to connect to server. Please check your connection and try again."
+      );
+    } finally {
+      setIsCreatingPin(false);
+    }
+  };
 
   const submit = async () => {
     setError({
@@ -136,9 +207,9 @@ const SignUp = () => {
 
           if (response.status === 201) {
             await updateUserFromAPI(responseData);
-            setIsAuthenticated(true);
-            Alert.alert("Success", "Account setup completed!");
-            router.replace("/(app)");
+            setCreatedUserData(responseData);
+            setShowPinModal(true);
+            // Note: setIsAuthenticated will be called only after PIN is successfully created
             return;
           }
         } else {
@@ -197,12 +268,12 @@ const SignUp = () => {
         await updateUserFromAPI(responseData);
         console.log("User data stored locally");
 
-        // Step 6: Set authentication status to allow navigation to protected routes
-        setIsAuthenticated(true);
-        console.log("Authentication status set to true");
-
-        Alert.alert("Success", "Account created successfully!");
-        router.replace("/(app)");
+        // Step 6: Store user data and show PIN modal (don't set authenticated yet)
+        setCreatedUserData(responseData);
+        console.log("About to show PIN modal...");
+        setShowPinModal(true);
+        console.log("PIN modal state set to true");
+        // Note: setIsAuthenticated will be called only after PIN is successfully created
       } else {
         throw new Error("Failed to create account in database");
       }
@@ -294,6 +365,20 @@ const SignUp = () => {
           />
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* PIN Creation Modal */}
+      <PinModal
+        visible={showPinModal}
+        isLoading={isCreatingPin}
+        onClose={() => {
+          console.log("PIN modal onClose called");
+          setShowPinModal(false);
+          // Optional: You might want to handle what happens when user closes the modal
+          // For now, we'll just close it without redirecting
+        }}
+        onSuccess={handlePinSuccess}
+        title="Create your Stase PIN"
+      />
     </SafeAreaView>
   );
 };
