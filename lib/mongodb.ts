@@ -13,9 +13,6 @@ declare global {
   var mongoose: any;
 }
 
-// Disable buffering globally before any connections
-mongoose.set("bufferCommands", false);
-
 interface DatabaseResponse {
   success: boolean;
   error?: string;
@@ -48,6 +45,7 @@ export async function connectToDatabase(): Promise<DatabaseResponse> {
       maxPoolSize: 10, // Maintain up to 10 socket connections
       minPoolSize: 2, // Maintain at least 2 socket connections
       maxIdleTimeMS: 30000, // Close connections after 30s of inactivity
+      bufferCommands: false, // Disable buffering to prevent timeouts
     });
 
     // Cache the connection

@@ -10,7 +10,6 @@ import {
   getBankName,
   getSwiftCode,
 } from "@/utils/createAccount";
-import bcrypt from "bcryptjs";
 
 // Global variable to cache the database connection
 declare global {
@@ -34,7 +33,7 @@ export const POST = async (request: Request) => {
       return new Response(
         JSON.stringify({
           error:
-            "Missing required fields: firstName, lastName, username, email",
+            "Missing required fields: firstName, lastName, username, email, clerkUserId",
         }),
         {
           status: 400,
@@ -71,22 +70,10 @@ export const POST = async (request: Request) => {
       console.log("Connection host:", global.mongoose.connection.host);
     }
 
-    // Set a timeout for database operations
-    const operationTimeout = 12000; // Increased to 12 seconds
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(
-        () => reject(new Error("Database operation timeout")),
-        operationTimeout,
-      ),
-    );
-
-    // Check for existing user with timeout
-    const existingUser = await Promise.race([
-      User.findOne({
-        $or: [{ email }, { username }],
-      }),
-      timeoutPromise,
-    ]);
+    // Check for existing user
+    const existingUser = await User.findOne({
+      $or: [{ email }, { username }],
+    });
 
     if (existingUser) {
       return new Response(
@@ -100,17 +87,12 @@ export const POST = async (request: Request) => {
       );
     }
 
-    // Create user
-    const defaultPin = "1234";
-
-    const hashedPin = await bcrypt.hash(defaultPin, 12);
-
+    // Create user (transactionPin will be set later via PIN modal)
     const user = new User({
       firstName,
       lastName,
       username,
       email,
-      transactionPin: hashedPin,
       clerkUserId,
     });
 
@@ -138,9 +120,9 @@ export const POST = async (request: Request) => {
     }
 
     // Get transactions
-    const transactions = await Transaction.find({
+    const transactions = (await Transaction.find({
       $or: [{ from: savedUser._id }, { to: savedUser._id }],
-    });
+    })) as any[];
 
     // Build response
     const response = {
@@ -185,6 +167,37 @@ export const POST = async (request: Request) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error: any) {
+    console.error("Error creating account:", error);
+
+    // Handle specific database connection errors
+    if (
+      error.message &&
+      error.message.includes("before initial connection is complete")
+    ) {
+      return new Response(
+        JSON.stringify({
+          error: "Database connection error. Please try again in a moment.",
+        }),
+        {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    // Handle timeout errors
+    if (error.message && error.message.includes("timeout")) {
+      return new Response(
+        JSON.stringify({
+          error: "Request timed out. Please try again.",
+        }),
+        {
+          status: 408,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
     // Handle MongoDB duplicate key error
     if (error.code === 11000) {
       return new Response(
@@ -198,7 +211,6 @@ export const POST = async (request: Request) => {
       );
     }
 
-    console.error("Error creating account:", error);
     return new Response(
       JSON.stringify({
         error: error.message || "Internal server error",

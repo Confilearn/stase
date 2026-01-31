@@ -40,7 +40,8 @@ const UserSchema = new Schema<IUser>(
     },
     transactionPin: {
       type: String,
-      required: true,
+      required: false,
+      default: null,
     },
     clerkUserId: {
       type: String,
