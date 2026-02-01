@@ -2,19 +2,20 @@ import ChevronLeft from "@/components/ChevronLeft";
 import CustomButton from "@/components/CustomButton";
 import CustomInput from "@/components/CustomInput";
 import PinModal from "@/components/PinModal";
+import { useAuthStore } from "@/store/auth.store";
 import { useThemeStore } from "@/store/theme.store";
 import { useUserStore } from "@/store/user.store";
 import { tokenStorage } from "@/utils/tokenStorage";
-import { useAuth, useSignIn } from "@clerk/clerk-expo";
+import { useAuth, useOAuth, useSignIn } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { z } from "zod";
@@ -34,11 +35,14 @@ const signInSchema = z.object({
 const SignIn = () => {
   const { setTheme } = useThemeStore();
   const { updateUserFromAPI } = useUserStore();
+  const { setIsAuthenticated } = useAuthStore();
   const router = useRouter();
   const { signIn, setActive, isLoaded } = useSignIn();
   const { getToken } = useAuth();
+  const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSigning, setIsGoogleSigning] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
   const [isCreatingPin, setIsCreatingPin] = useState(false);
   const [signedInUserData, setSignedInUserData] = useState<any>(null);
@@ -58,7 +62,10 @@ const SignIn = () => {
         return;
       }
 
-      console.log("Setting transaction PIN for user:", signedInUserData.user.clerkUserId);
+      console.log(
+        "Setting transaction PIN for user:",
+        signedInUserData.user.clerkUserId,
+      );
 
       // Call API to set transaction PIN
       const response = await fetch("/api/createUserTransactionPin", {
@@ -73,7 +80,7 @@ const SignIn = () => {
       const responseData = await response.json();
 
       if (response.ok) {
-        console.log("PIN set successfully:", responseData);
+        console.log("PIN set successfully for sign-in user:", responseData);
 
         // Update user data with PIN status
         const updatedUserData = {
@@ -85,6 +92,7 @@ const SignIn = () => {
         };
 
         await updateUserFromAPI(updatedUserData);
+        setIsAuthenticated(true);
 
         setShowPinModal(false);
         Alert.alert("Success", "PIN created successfully!");
@@ -99,13 +107,102 @@ const SignIn = () => {
     } catch (error: any) {
       console.error("Error setting PIN:", error);
       Alert.alert(
-        "Connection Error", 
-        "Unable to connect to server. Please check your connection and try again."
+        "Connection Error",
+        "Unable to connect to server. Please check your connection and try again.",
       );
     } finally {
       setIsCreatingPin(false);
     }
   };
+
+  // /**
+  //  * Handle Google OAuth sign-in flow
+  //  * Initiates OAuth flow and handles user authentication
+  //  */
+  // const handleGoogleSignIn = async () => {
+  //   if (!isLoaded) return;
+
+  //   setIsGoogleSigning(true);
+
+  //   try {
+  //     // Start OAuth flow with Google
+  //     const { createdSessionId, signIn } = await startOAuthFlow();
+
+  //     if (createdSessionId) {
+  //       // Successfully authenticated with Google
+  //       await setActive({ session: createdSessionId });
+
+  //       // Get and store the token
+  //       const token = await getToken();
+  //       if (token) {
+  //         await tokenStorage.saveToken(token);
+  //       }
+
+  //       // Check if user has transaction PIN
+  //       try {
+  //         const response = await fetch("/api/checkTransactionPin", {
+  //           method: "GET",
+  //           headers: {
+  //             "Content-Type": "application/json",
+  //             Authorization: `Bearer ${token}`,
+  //           },
+  //         });
+
+  //         if (response.ok) {
+  //           const data = await response.json();
+
+  //           // Get user data from getUserData endpoint
+  //           const userResponse = await fetch("/api/getUserData", {
+  //             method: "POST",
+  //             headers: {
+  //               "Content-Type": "application/json",
+  //               Authorization: `Bearer ${token}`,
+  //             },
+  //             body: JSON.stringify({
+  //               clerkUserId: token,
+  //             }),
+  //           });
+
+  //           if (userResponse.status === 200) {
+  //             const userData = await userResponse.json();
+  //             await updateUserFromAPI(userData);
+  //             setSignedInUserData(userData);
+
+  //             if (data.hasTransactionPin) {
+  //               // User has PIN, set authentication and redirect to app
+  //               setIsAuthenticated(true);
+  //               router.replace("/(app)");
+  //             } else {
+  //               // User doesn't have PIN, show PIN modal
+  //               setShowPinModal(true);
+  //             }
+  //           } else {
+  //             // Handle case where user data doesn't exist - redirect to Google OAuth completion
+  //             router.replace("/(auth)/googleOauth");
+  //           }
+  //         } else {
+  //           // If check fails, redirect to Google OAuth completion
+  //           router.replace("/(auth)/googleOauth");
+  //         }
+  //       } catch (error) {
+  //         console.error("Error checking PIN status for Google user:", error);
+  //         // If there's an error, redirect to Google OAuth completion
+  //         router.replace("/(auth)/googleOauth");
+  //       }
+  //     } else {
+  //       // OAuth failed or was cancelled
+  //       Alert.alert(
+  //         "Error",
+  //         "Google sign-in was cancelled or failed. Please try again.",
+  //       );
+  //     }
+  //   } catch (error: any) {
+  //     console.error("Google OAuth error:", error);
+  //     Alert.alert("Error", "Failed to sign in with Google. Please try again.");
+  //   } finally {
+  //     setIsGoogleSigning(false);
+  //   }
+  // };
 
   const submit = async () => {
     // reset any previous errors
@@ -175,7 +272,8 @@ const SignIn = () => {
               setSignedInUserData(userData);
 
               if (data.hasTransactionPin) {
-                // User has PIN, redirect to app
+                // User has PIN, set authentication and redirect to app
+                setIsAuthenticated(true);
                 router.replace("/(app)");
               } else {
                 // User doesn't have PIN, show PIN modal
@@ -253,6 +351,24 @@ const SignIn = () => {
           </View>
 
           <View style={{ flex: 1 }} />
+
+          {/* Google Sign-In Button */}
+          {/* <TouchableOpacity
+            className="flex-row items-center justify-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-3 mb-3"
+            onPress={handleGoogleSignIn}
+            disabled={isGoogleSigning}
+          >
+            <Text className="text-base font-medium text-gray-700 dark:text-gray-300 mr-2">
+              {isGoogleSigning ? "Connecting..." : "Sign in with Google"}
+            </Text>
+          </TouchableOpacity> */}
+
+          {/* Divider
+          <View className="flex-row items-center mb-3">
+            <View className="flex-1 h-px bg-gray-300 dark:bg-gray-600" />
+            <Text className="px-3 text-sm text-gray-500 dark:text-gray-400">OR</Text>
+            <View className="flex-1 h-px bg-gray-300 dark:bg-gray-600" />
+          </View> */}
 
           <CustomButton
             title="Log in"

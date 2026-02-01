@@ -1,16 +1,7 @@
-import { Stack } from 'expo-router'
+import { Stack } from "expo-router";
 
 const AppLayout = () => {
+  return <Stack screenOptions={{ headerShown: false }} />;
+};
 
-    // const { isSignedIn } = useAuth()
-
-    // if (!isSignedIn) {
-    //     return <Redirect href={'/(auth)/welcome'} />
-    // }
-
-    return (
-        <Stack screenOptions={{ headerShown: false }} />
-    )
-}
-
-export default AppLayout
+export default AppLayout;

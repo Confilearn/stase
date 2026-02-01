@@ -1,5 +1,5 @@
 import cn from "clsx";
-import React, { useState } from "react";
+import { useState } from "react";
 import { Text, TextInput, View } from "react-native";
 
 interface Props {
@@ -9,6 +9,7 @@ interface Props {
   error?: string;
   secureTextEntry?: boolean;
   keyboardType?: any;
+  editable?: boolean;
 }
 
 const CustomInput = ({
@@ -18,6 +19,7 @@ const CustomInput = ({
   error,
   secureTextEntry = false,
   keyboardType = "default",
+  editable = true,
 }: Props) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -33,6 +35,7 @@ const CustomInput = ({
         onChangeText={onChangeText}
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
+        editable={editable}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         className={cn(

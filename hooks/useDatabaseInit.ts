@@ -49,7 +49,7 @@ export function useDatabaseInit() {
   return { isInitialized, error, isOnline };
 }
 
-// Helper functions for network detection
+//TODO: Helper functions for network detection
 async function getNetworkState() {
   try {
     // For React Native, we'd use @react-native-community/netinfo
