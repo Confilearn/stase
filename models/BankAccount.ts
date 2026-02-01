@@ -1,28 +1,18 @@
 import { Document, Schema, Types, model, models } from "mongoose";
 
-/**
- * Supported account currencies in stase.
- *
- * Each user can have (up to) one account per currency.
- */
 export type SupportedCurrency = "USD" | "CAD" | "EUR" | "GBP";
 
-/**
- * BankAccount document interface.
- *
- * Represents a single bank account for a specific currency belonging to a user.
- */
 export interface IBankAccount extends Document {
   userId: Types.ObjectId; // Reference to a User document.
   accountNumber: string;
   iban?: string;
   sortCode?: string;
-  accountName: string; // Account holder / account name.
+  accountName: string;
   swiftCode?: string;
   bankName: string;
   bankAddress?: string;
   accountCurrency: SupportedCurrency;
-  balance: number; // Account balance
+  balance: number;
 }
 
 /**

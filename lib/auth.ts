@@ -46,7 +46,7 @@ export async function verifyAuth(request: Request): Promise<AuthResult> {
 
     // Connect to database
     const { success, conn } = await connectDB();
-    
+
     if (!success || !conn) {
       return {
         authenticated: false,

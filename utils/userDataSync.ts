@@ -7,7 +7,7 @@ export const userDataSync = {
     try {
       const response = await axiosInstance.get("/api/fetchUserDetails");
 
-      if (response.status === 200 && response.data) {
+      if (response.data) {
         const { updateUserFromAPI } = useUserStore.getState();
         await updateUserFromAPI(response.data);
         return true;
@@ -25,6 +25,7 @@ export const userDataSync = {
 
     if (!user) return;
 
+    //TODO: Fix to user.updatedAt instead of user.createdAt
     const lastUpdate = new Date(user.createdAt).getTime();
     const now = new Date().getTime();
     const ageMinutes = (now - lastUpdate) / (1000 * 60);

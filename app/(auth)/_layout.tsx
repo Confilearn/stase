@@ -1,15 +1,7 @@
-import { Slot } from 'expo-router';
+import { Slot } from "expo-router";
 
 const AuthLayout = () => {
-    // const { isSignedIn } = useAuth();
+  return <Slot />;
+};
 
-    // if (isSignedIn) {
-    //     return <Redirect href={'/(app)'} />;
-    // }
-
-    return (
-        <Slot />
-    )
-}
-
-export default AuthLayout
+export default AuthLayout;

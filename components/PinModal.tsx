@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Dimensions,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Dimensions,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 
 interface PinModalProps {
@@ -29,10 +29,12 @@ const PinModal: React.FC<PinModalProps> = ({
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [isConfirmStep, setIsConfirmStep] = useState(false);
+  const [error, setError] = useState("");
 
   // Handle number press
   const handleNumberPress = (num: string) => {
     if (isLoading) return; // Prevent input when loading
+    setError(""); // Clear error on new input
     
     if (isConfirmStep) {
       if (confirmPin.length < 4) {
@@ -45,6 +47,7 @@ const PinModal: React.FC<PinModalProps> = ({
             onSuccess(pin);
           } else {
             // PINs don't match, reset to first step
+            setError("PINs don't match. Please try again.");
             setTimeout(() => {
               setPin("");
               setConfirmPin("");
@@ -119,6 +122,7 @@ const PinModal: React.FC<PinModalProps> = ({
 
     return numbers.map((row, rowIndex) => (
       <View key={rowIndex} style={styles.numberRow}>
+        {error && <Text style={styles.errorText}>{error}</Text>}
         {row.map((num, colIndex) => (
           <TouchableOpacity
             key={`${rowIndex}-${colIndex}`}
@@ -258,6 +262,12 @@ const styles = StyleSheet.create({
     color: "#666",
     textAlign: "center",
   },
+  errorText:{
+    color: "#dc2626",
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: "center",
+  }
 });
 
 export default PinModal;

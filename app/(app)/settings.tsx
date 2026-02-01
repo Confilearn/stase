@@ -75,7 +75,7 @@ const Settings = () => {
             <Text className="text-lg font-metropolis-semibold text-content-100 dark:text-content-500 mb-2">
               Account
             </Text>
-            <Text className="text-sm text-content-300 dark:text-content-400 mb-6">
+            <Text className="text-md text-content-300 dark:text-content-400 mb-6">
               Manage your account settings and preferences
             </Text>
 

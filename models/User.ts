@@ -6,8 +6,8 @@ export interface IUser extends Document {
   username: string;
   email: string;
   password: string;
-  transactionPin: string; // 4-digit PIN
-  clerkUserId: string; // userId from Clerk.
+  transactionPin: string;
+  clerkUserId: string;
 }
 
 const UserSchema = new Schema<IUser>(

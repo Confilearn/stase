@@ -6,16 +6,16 @@ import { useAuthStore } from "@/store/auth.store";
 import { useThemeStore } from "@/store/theme.store";
 import { useUserStore } from "@/store/user.store";
 import { tokenStorage } from "@/utils/tokenStorage";
-import { useAuth, useSignUp } from "@clerk/clerk-expo";
+import { useAuth, useOAuth, useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { z } from "zod";
@@ -57,7 +57,13 @@ const SignUp = () => {
   const { setIsAuthenticated } = useAuthStore();
   const router = useRouter();
 
+  // Clerk hooks for authentication
+  const { isLoaded, signUp, setActive } = useSignUp();
+  const { getToken, userId } = useAuth();
+  const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSigning, setIsGoogleSigning] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
   const [isCreatingPin, setIsCreatingPin] = useState(false);
   const [createdUserData, setCreatedUserData] = useState<any>(null);
@@ -80,9 +86,6 @@ const SignUp = () => {
     console.log("PIN modal visible:", showPinModal);
   }, [showPinModal]);
 
-  const { isLoaded, signUp, setActive } = useSignUp();
-  const { getToken, userId } = useAuth();
-
   // Handle PIN creation success
   const handlePinSuccess = async (pin: string) => {
     setIsCreatingPin(true);
@@ -96,7 +99,10 @@ const SignUp = () => {
         return;
       }
 
-      console.log("Setting transaction PIN for user:", createdUserData.user.clerkUserId);
+      console.log(
+        "Setting transaction PIN for user:",
+        createdUserData.user.clerkUserId,
+      );
 
       // Call API to set transaction PIN
       const response = await fetch("/api/createUserTransactionPin", {
@@ -138,13 +144,65 @@ const SignUp = () => {
     } catch (error: any) {
       console.error("Error setting PIN:", error);
       Alert.alert(
-        "Connection Error", 
-        "Unable to connect to server. Please check your connection and try again."
+        "Connection Error",
+        "Unable to connect to server. Please check your connection and try again.",
       );
     } finally {
       setIsCreatingPin(false);
     }
   };
+
+  /**
+   * Handle Google OAuth sign-up flow
+   * Initiates OAuth flow and redirects to Google OAuth completion page
+   */
+  // const handleGoogleSignUp = async () => {
+  //   if (!isLoaded) {
+  //     console.log("Google OAuth: Clerk not loaded");
+  //     return;
+  //   }
+
+  //   setIsGoogleSigning(true);
+
+  //   try {
+  //     console.log("Starting Google OAuth flow...");
+  //     // Start OAuth flow with Google
+  //     const result = await startOAuthFlow();
+
+  //     console.log("OAuth flow result:", {
+  //       createdSessionId: !!result.createdSessionId,
+  //       signUp: !!result.signUp,
+  //       setActive: !!result.setActive,
+  //       complete: result
+  //     });
+
+  //     if (result.createdSessionId) {
+  //       // Successfully authenticated with Google
+  //       console.log("Google OAuth successful, setting session...");
+  //       await setActive({ session: result.createdSessionId });
+
+  //       // Wait a moment for session to be fully set
+  //       await new Promise(resolve => setTimeout(resolve, 100));
+
+  //       // Redirect to Google OAuth completion page
+  //       console.log("Redirecting to Google OAuth completion page...");
+  //       router.replace("/(auth)/googleOauth");
+  //     } else if (result.signUp) {
+  //       // OAuth started but needs completion
+  //       console.log("OAuth started, redirecting to completion page...");
+  //       router.replace("/(auth)/googleOauth");
+  //     } else {
+  //       // OAuth failed or was cancelled
+  //       console.log("OAuth failed or cancelled");
+  //       Alert.alert("Error", "Google sign-up was cancelled or failed. Please try again.");
+  //     }
+  //   } catch (error: any) {
+  //     console.error("Google OAuth error:", error);
+  //     Alert.alert("Error", "Failed to sign up with Google. Please try again.");
+  //   } finally {
+  //     setIsGoogleSigning(false);
+  //   }
+  // };
 
   const submit = async () => {
     setError({
@@ -245,7 +303,7 @@ const SignUp = () => {
 
       // Step 4: Create User in DB
       console.log("Creating user in database...");
-      const response = await fetch("/api/createAccount", {
+      const response = await fetch("http://localhost:8081/api/createAccount", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -357,6 +415,26 @@ const SignUp = () => {
 
           <View style={{ flex: 1 }} />
 
+          {/* Google Sign-Up Button */}
+          {/* <TouchableOpacity
+            className="flex-row items-center justify-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-3 mb-3"
+            onPress={handleGoogleSignUp}
+            disabled={isGoogleSigning}
+          >
+            <Text className="text-base font-medium text-gray-700 dark:text-gray-300 mr-2">
+              {isGoogleSigning ? "Connecting..." : "Sign up with Google"}
+            </Text>
+          </TouchableOpacity> */}
+
+          {/* Divider */}
+          {/* <View className="flex-row items-center mb-3">
+            <View className="flex-1 h-px bg-gray-300 dark:bg-gray-600" />
+            <Text className="px-3 text-sm text-gray-500 dark:text-gray-400">
+              OR
+            </Text>
+            <View className="flex-1 h-px bg-gray-300 dark:bg-gray-600" />
+          </View> */}
+
           <CustomButton
             title="Get Started"
             style="mt-8"
@@ -372,9 +450,21 @@ const SignUp = () => {
         isLoading={isCreatingPin}
         onClose={() => {
           console.log("PIN modal onClose called");
-          setShowPinModal(false);
-          // Optional: You might want to handle what happens when user closes the modal
-          // For now, we'll just close it without redirecting
+          Alert.alert(
+            "PIN Required",
+            "A transaction PIN is required to use the app. Do you want to set it up later?",
+            [
+              { text: "Set PIN Now", style: "cancel" },
+              {
+                text: "Later",
+                onPress: () => {
+                  setShowPinModal(false);
+                  setIsAuthenticated(true);
+                  router.replace("/(app)");
+                },
+              },
+            ],
+          );
         }}
         onSuccess={handlePinSuccess}
         title="Create your Stase PIN"
