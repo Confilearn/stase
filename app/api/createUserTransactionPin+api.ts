@@ -69,7 +69,30 @@ export const POST = async (request: Request) => {
     // Hash and update PIN
     const hashedPin = await bcrypt.hash(pin, 12);
     user.transactionPin = hashedPin;
-    await user.save();
+
+    // Save user with retry logic
+    let retries = 3;
+    let savedUser;
+
+    while (retries > 0 && !savedUser) {
+      try {
+        savedUser = await user.save();
+        break;
+      } catch (error: any) {
+        console.error(
+          `User save attempt ${4 - retries} failed:`,
+          error.message,
+        );
+        retries--;
+
+        if (retries > 0) {
+          // Wait a bit before retrying
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        } else {
+          throw error;
+        }
+      }
+    }
 
     // Build response
     const response = {

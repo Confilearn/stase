@@ -303,7 +303,7 @@ const SignUp = () => {
 
       // Step 4: Create User in DB
       console.log("Creating user in database...");
-      const response = await fetch("http://localhost:8081/api/createAccount", {
+      const response = await fetch("/api/createAccount", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

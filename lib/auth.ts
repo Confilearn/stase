@@ -55,8 +55,29 @@ export async function verifyAuth(request: Request): Promise<AuthResult> {
       };
     }
 
-    // Find user by clerkUserId
-    const user = await User.findOne({ clerkUserId: token });
+    // Find user by clerkUserId with retry logic
+    let user;
+    let retries = 3;
+
+    while (retries > 0 && !user) {
+      try {
+        user = await User.findOne({ clerkUserId: token });
+        break;
+      } catch (error: any) {
+        console.error(
+          `User lookup attempt ${4 - retries} failed:`,
+          error.message,
+        );
+        retries--;
+
+        if (retries > 0) {
+          // Wait a bit before retrying
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        } else {
+          throw error;
+        }
+      }
+    }
 
     if (!user) {
       return {

@@ -21,6 +21,22 @@ if (!cached) {
 
 export async function connectDB() {
   try {
+    // Force complete cache reset to apply new timeout settings
+    if (global.mongooseCache) {
+      if (
+        global.mongooseCache.conn &&
+        typeof global.mongooseCache.conn.close === "function"
+      ) {
+        try {
+          await global.mongooseCache.conn.close();
+        } catch (closeError) {
+          console.error("Error closing MongoDB connection:", closeError);
+        }
+      }
+      global.mongooseCache = null;
+      cached = null;
+    }
+
     if (!cached) {
       cached = global.mongooseCache = { conn: null, promise: null };
     }
@@ -31,10 +47,11 @@ export async function connectDB() {
       const opts = {
         bufferCommands: false,
         maxPoolSize: 10,
-        serverSelectionTimeoutMS: 10000,
+        serverSelectionTimeoutMS: 30000, // Increased from 10000 to 30000
         socketTimeoutMS: 45000,
-        connectTimeoutMS: 10000,
+        connectTimeoutMS: 30000, // Increased from 10000 to 30000
         family: 4,
+        ssl: false, // Disable SSL for local development
       };
 
       // Try to connect with better error handling
@@ -75,6 +92,13 @@ export async function connectDB() {
   } catch (error: any) {
     console.error("MongoDB connection error:", error.message);
     // Clear the cached connection on error
+    if (global.mongooseCache && global.mongooseCache.conn) {
+      try {
+        global.mongooseCache.conn.close();
+      } catch (closeError) {
+        console.error("Error closing MongoDB connection:", closeError);
+      }
+    }
     global.mongooseCache = null;
     cached = global.mongooseCache = { conn: null, promise: null };
     return { conn: null, success: false, error: error.message };
