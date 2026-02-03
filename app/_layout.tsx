@@ -9,8 +9,11 @@ import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
 import { useEffect } from "react";
 import "./global.css";
+import { useColorScheme } from "react-native";
+import { StatusBar } from "expo-status-bar";
 
 export default function RootLayout() {
+  const colorScheme = useColorScheme();
   const { getTheme } = useThemeStore();
   const { loadUserData } = useUserStore();
   const { isAuthenticated, setIsAuthenticated, checkAuthStatus } =
@@ -71,6 +74,10 @@ export default function RootLayout() {
         tokenCache={tokenCache}
         publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY}
       >
+        <StatusBar
+          style={colorScheme === "dark" ? "light" : "dark"}
+          backgroundColor={colorScheme === "dark" ? "#0E0F0C" : "#FFFFFF"}
+        />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Protected guard={isAuthenticated}>
             <Stack.Screen name="(app)" />
