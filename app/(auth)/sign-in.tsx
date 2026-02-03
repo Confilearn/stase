@@ -3,7 +3,6 @@ import CustomButton from "@/components/CustomButton";
 import CustomInput from "@/components/CustomInput";
 import PinModal from "@/components/PinModal";
 import { useAuthStore } from "@/store/auth.store";
-import { useThemeStore } from "@/store/theme.store";
 import { useUserStore } from "@/store/user.store";
 import { api } from "@/utils/api";
 import { localStorage } from "@/utils/localStorage";
@@ -35,7 +34,6 @@ const signInSchema = z.object({
 });
 
 const SignIn = () => {
-  const { setTheme } = useThemeStore();
   const { updateUserFromAPI } = useUserStore();
   const { setIsAuthenticated } = useAuthStore();
   const router = useRouter();
@@ -43,7 +41,6 @@ const SignIn = () => {
   const { getToken, userId } = useAuth();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGoogleSigning, setIsGoogleSigning] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
   const [isCreatingPin, setIsCreatingPin] = useState(false);
   const [signedInUserData, setSignedInUserData] = useState<any>(null);
@@ -306,20 +303,18 @@ const SignIn = () => {
           className="h-full"
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ flexGrow: 1 }}
+          showsVerticalScrollIndicator={false}
         >
-          <View className="flex-row gap-5 mt-4 items-center">
+          <View className="flex-row gap-5 mt-2 items-center">
             <Link href={"/welcome"}>
               <ChevronLeft />
             </Link>
-            <Text
-              onPress={() => setTheme("system")}
-              className="text-2xl font-metropolis-semibold text-content-100 dark:text-content-500"
-            >
+            <Text className="text-2xl font-metropolis-semibold text-content-100 dark:text-content-500">
               Sign In
             </Text>
           </View>
 
-          <View className="w-full flex gap-12 mt-12">
+          <View className="w-full flex gap-12 mt-10">
             <CustomInput
               label={"Email"}
               value={form.email}
@@ -344,7 +339,7 @@ const SignIn = () => {
 
           <CustomButton
             title="Log in"
-            style="mt-8"
+            style="mt-8 mb-2"
             onPress={submit}
             isLoading={isSubmitting}
           />

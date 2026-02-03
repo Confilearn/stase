@@ -55,7 +55,7 @@ const Welcome = () => {
         SEND MONEY AND GET PAID WITH EASE
       </Text>
 
-      <View className="w-full flex gap-4 flex-1 justify-end mb-4">
+      <View className="w-full flex gap-4 flex-1 justify-end my-2">
         <View className="flex-row items-center justify-center gap-2">
           <CustomButton
             title="Log in"
@@ -77,7 +77,7 @@ const Welcome = () => {
           {isLoading ? (
             <ActivityIndicator
               size="small"
-              color={colorScheme === "dark" ? "#FFFFFF" : "#000000"}
+              color={colorScheme === "dark" ? "#FFFFFF" : "#0E0F0C"}
             />
           ) : (
             <>

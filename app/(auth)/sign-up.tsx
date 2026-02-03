@@ -3,12 +3,11 @@ import CustomButton from "@/components/CustomButton";
 import CustomInput from "@/components/CustomInput";
 import PinModal from "@/components/PinModal";
 import { useAuthStore } from "@/store/auth.store";
-import { useThemeStore } from "@/store/theme.store";
 import { useUserStore } from "@/store/user.store";
 import { api } from "@/utils/api";
 import { localStorage } from "@/utils/localStorage";
 import { syncManager } from "@/utils/sync";
-import { useAuth, useOAuth, useSignUp } from "@clerk/clerk-expo";
+import { useAuth, useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -54,18 +53,15 @@ const signUpSchema = z.object({
 });
 
 const SignUp = () => {
-  const { setTheme } = useThemeStore();
   const { updateUserFromAPI } = useUserStore();
   const { setIsAuthenticated } = useAuthStore();
   const router = useRouter();
 
   // Clerk hooks for authentication
-  const { isLoaded, signUp, setActive } = useSignUp();
-  const { getToken, userId, signOut } = useAuth();
-  const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
+  const { isLoaded, signUp } = useSignUp();
+  const { getToken, userId } = useAuth();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGoogleSigning, setIsGoogleSigning] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
   const [isCreatingPin, setIsCreatingPin] = useState(false);
   const [createdUserData, setCreatedUserData] = useState<any>(null);
@@ -84,10 +80,6 @@ const SignUp = () => {
     lastName: "",
     username: "",
   });
-
-  useEffect(() => {
-    console.log("PIN modal visible:", showPinModal);
-  }, [showPinModal]);
 
   // Handle PIN creation success
   const handlePinSuccess = async (pin: string) => {
@@ -381,25 +373,24 @@ const SignUp = () => {
     <SafeAreaView className="flex-1 bg-bg-light dark:bg-bg-dark p-4 relative">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
       >
+        <View className="flex-row gap-5 my-2 items-center">
+          <Link href={"/welcome"}>
+            <ChevronLeft />
+          </Link>
+          <Text className="text-2xl font-metropolis-semibold text-content-100 dark:text-content-500">
+            Create Account
+          </Text>
+        </View>
+
         <ScrollView
-          className="h-full"
+          className="flex-1"
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ flexGrow: 1 }}
+          showsVerticalScrollIndicator={false}
         >
-          <View className="flex-row gap-5 mt-4 items-center">
-            <Link href={"/welcome"}>
-              <ChevronLeft />
-            </Link>
-            <Text
-              onPress={() => setTheme("system")}
-              className="text-2xl font-metropolis-semibold text-content-100 dark:text-content-500"
-            >
-              Create Account
-            </Text>
-          </View>
-
-          <View className="w-full flex gap-12 mt-12">
+          <View className="w-full flex gap-10 mt-7">
             <CustomInput
               label={"First Name"}
               onChangeText={(text) =>
@@ -441,29 +432,9 @@ const SignUp = () => {
 
           <View style={{ flex: 1 }} />
 
-          {/* Google Sign-Up Button */}
-          {/* <TouchableOpacity
-            className="flex-row items-center justify-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-3 mb-3"
-            onPress={handleGoogleSignUp}
-            disabled={isGoogleSigning}
-          >
-            <Text className="text-base font-medium text-gray-700 dark:text-gray-300 mr-2">
-              {isGoogleSigning ? "Connecting..." : "Sign up with Google"}
-            </Text>
-          </TouchableOpacity> */}
-
-          {/* Divider */}
-          {/* <View className="flex-row items-center mb-3">
-            <View className="flex-1 h-px bg-gray-300 dark:bg-gray-600" />
-            <Text className="px-3 text-sm text-gray-500 dark:text-gray-400">
-              OR
-            </Text>
-            <View className="flex-1 h-px bg-gray-300 dark:bg-gray-600" />
-          </View> */}
-
           <CustomButton
             title="Get Started"
-            style="mt-8"
+            style="mt-8 mb-2"
             onPress={submit}
             isLoading={isSubmitting}
           />
