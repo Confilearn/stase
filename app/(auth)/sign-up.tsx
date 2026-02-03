@@ -5,7 +5,9 @@ import PinModal from "@/components/PinModal";
 import { useAuthStore } from "@/store/auth.store";
 import { useThemeStore } from "@/store/theme.store";
 import { useUserStore } from "@/store/user.store";
-import { tokenStorage } from "@/utils/tokenStorage";
+import { api } from "@/utils/api";
+import { localStorage } from "@/utils/localStorage";
+import { syncManager } from "@/utils/sync";
 import { useAuth, useOAuth, useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -59,7 +61,7 @@ const SignUp = () => {
 
   // Clerk hooks for authentication
   const { isLoaded, signUp, setActive } = useSignUp();
-  const { getToken, userId } = useAuth();
+  const { getToken, userId, signOut } = useAuth();
   const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,6 +69,7 @@ const SignUp = () => {
   const [showPinModal, setShowPinModal] = useState(false);
   const [isCreatingPin, setIsCreatingPin] = useState(false);
   const [createdUserData, setCreatedUserData] = useState<any>(null);
+  const [pinSetupIncomplete, setPinSetupIncomplete] = useState(false);
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -105,19 +108,13 @@ const SignUp = () => {
       );
 
       // Call API to set transaction PIN
-      const response = await fetch("/api/createUserTransactionPin", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${createdUserData.user.clerkUserId}`,
-        },
-        body: JSON.stringify({ pin }),
-      });
+      const response = await api.createUserTransactionPin(
+        pin,
+        createdUserData.user.clerkUserId,
+      );
 
-      const responseData = await response.json();
-
-      if (response.ok) {
-        console.log("PIN set successfully:", responseData);
+      if (response.success) {
+        console.log("PIN set successfully:", response);
 
         // Update user data with PIN status
         const updatedUserData = {
@@ -129,80 +126,64 @@ const SignUp = () => {
         };
 
         await updateUserFromAPI(updatedUserData);
+        await localStorage.setUserData(updatedUserData);
         setIsAuthenticated(true);
+        await localStorage.setAuthenticated(true);
+
+        // Start sync manager
+        syncManager.startAutoSync(createdUserData.user.clerkUserId);
 
         setShowPinModal(false);
         Alert.alert("Success", "Account created successfully!");
         router.replace("/(app)");
       } else {
-        console.error("PIN API error:", responseData);
+        console.error("PIN API error:", response);
         Alert.alert(
           "Error",
-          responseData.error || "Failed to set PIN. Please try again.",
+          response.error || "Failed to set PIN. Please try again.",
         );
       }
     } catch (error: any) {
       console.error("Error setting PIN:", error);
-      Alert.alert(
-        "Connection Error",
-        "Unable to connect to server. Please check your connection and try again.",
-      );
+
+      // Queue the action for later if offline
+      if (createdUserData?.user.clerkUserId) {
+        await syncManager.queueAction({
+          type: "set_pin",
+          data: { pin },
+        });
+
+        Alert.alert(
+          "Offline Mode",
+          "PIN will be set when connection is restored. You can continue using the app.",
+        );
+
+        // Continue with the flow anyway
+        const updatedUserData = {
+          ...createdUserData,
+          user: {
+            ...createdUserData.user,
+            hasTransactionPin: true,
+          },
+        };
+
+        await updateUserFromAPI(updatedUserData);
+        await localStorage.setUserData(updatedUserData);
+        setIsAuthenticated(true);
+        await localStorage.setAuthenticated(true);
+
+        setShowPinModal(false);
+        router.replace("/(app)");
+      } else {
+        Alert.alert(
+          "Connection Error",
+          "Unable to connect to server. Please check your connection and try again.",
+        );
+      }
     } finally {
       setIsCreatingPin(false);
     }
   };
-
-  /**
-   * Handle Google OAuth sign-up flow
-   * Initiates OAuth flow and redirects to Google OAuth completion page
-   */
-  // const handleGoogleSignUp = async () => {
-  //   if (!isLoaded) {
-  //     console.log("Google OAuth: Clerk not loaded");
-  //     return;
-  //   }
-
-  //   setIsGoogleSigning(true);
-
-  //   try {
-  //     console.log("Starting Google OAuth flow...");
-  //     // Start OAuth flow with Google
-  //     const result = await startOAuthFlow();
-
-  //     console.log("OAuth flow result:", {
-  //       createdSessionId: !!result.createdSessionId,
-  //       signUp: !!result.signUp,
-  //       setActive: !!result.setActive,
-  //       complete: result
-  //     });
-
-  //     if (result.createdSessionId) {
-  //       // Successfully authenticated with Google
-  //       console.log("Google OAuth successful, setting session...");
-  //       await setActive({ session: result.createdSessionId });
-
-  //       // Wait a moment for session to be fully set
-  //       await new Promise(resolve => setTimeout(resolve, 100));
-
-  //       // Redirect to Google OAuth completion page
-  //       console.log("Redirecting to Google OAuth completion page...");
-  //       router.replace("/(auth)/googleOauth");
-  //     } else if (result.signUp) {
-  //       // OAuth started but needs completion
-  //       console.log("OAuth started, redirecting to completion page...");
-  //       router.replace("/(auth)/googleOauth");
-  //     } else {
-  //       // OAuth failed or was cancelled
-  //       console.log("OAuth failed or cancelled");
-  //       Alert.alert("Error", "Google sign-up was cancelled or failed. Please try again.");
-  //     }
-  //   } catch (error: any) {
-  //     console.error("Google OAuth error:", error);
-  //     Alert.alert("Error", "Failed to sign up with Google. Please try again.");
-  //   } finally {
-  //     setIsGoogleSigning(false);
-  //   }
-  // };
 
   const submit = async () => {
     setError({
@@ -246,25 +227,18 @@ const SignUp = () => {
           console.log(
             "Token exists but no local user data, creating user in DB...",
           );
-          const response = await fetch("/api/createAccount", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${existingUserId}`,
-            },
-            body: JSON.stringify({
+          const responseData = await api.createAccount(
+            {
               firstName: form.firstName.toLowerCase().trim(),
               lastName: form.lastName.toLowerCase().trim(),
               username: form.username.toLowerCase().trim(),
               email: form.email.toLowerCase().trim(),
-              clerkUserId: existingUserId,
-            }),
-          });
+            },
+            existingUserId,
+          );
 
-          const responseData = await response.json();
-
-          if (response.status === 201) {
-            await updateUserFromAPI(responseData);
+          if (responseData && responseData.user) {
+            await updateUserFromAPI(responseData as any);
             setCreatedUserData(responseData);
             setShowPinModal(true);
             // Note: setIsAuthenticated will be called only after PIN is successfully created
@@ -287,53 +261,105 @@ const SignUp = () => {
       console.log("Clerk account created:", result);
 
       // Step 2: Skip session activation for now, rely on token
+
       // if (result.createdSessionId) {
       //   await setActive({ session: result.createdSessionId });
       //   console.log("Session activated successfully");
       // }
 
-      // Step 3: Get and store the clerkUserId (not the Clerk token)
-      const clerkUserId = userId || result.createdUserId;
+      // Step 3: Get and store the clerkUserId from the sign-up result
+      const clerkUserId = result.createdUserId;
       if (clerkUserId) {
-        await tokenStorage.saveToken(clerkUserId);
-        console.log("ClerkUserId saved successfully");
+        await localStorage.setAuthToken(clerkUserId);
+        console.log("ClerkUserId saved successfully:", clerkUserId);
       } else {
         console.warn("No clerkUserId received after account creation");
       }
 
       // Step 4: Create User in DB
       console.log("Creating user in database...");
-      const response = await fetch("/api/createAccount", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(clerkUserId && { Authorization: `Bearer ${clerkUserId}` }),
-        },
-        body: JSON.stringify({
-          firstName: form.firstName.toLowerCase().trim(),
-          lastName: form.lastName.toLowerCase().trim(),
-          username: form.username.toLowerCase().trim(),
-          email: form.email.toLowerCase().trim(),
-          clerkUserId: result.createdUserId,
-        }),
-      });
+      try {
+        if (!clerkUserId) {
+          throw new Error("No clerkUserId available for account creation");
+        }
 
-      const responseData = await response.json();
-      console.log("Database response:", response.status, responseData);
+        const response = await api.createAccount(
+          {
+            firstName: form.firstName.toLowerCase().trim(),
+            lastName: form.lastName.toLowerCase().trim(),
+            username: form.username.toLowerCase().trim(),
+            email: form.email.toLowerCase().trim(),
+          },
+          clerkUserId,
+        );
 
-      if (response.status === 201) {
-        // Step 5: Store user data in local store
-        await updateUserFromAPI(responseData);
-        console.log("User data stored locally");
+        console.log("Database response:", response);
 
-        // Step 6: Store user data and show PIN modal (don't set authenticated yet)
-        setCreatedUserData(responseData);
-        console.log("About to show PIN modal...");
-        setShowPinModal(true);
-        console.log("PIN modal state set to true");
-        // Note: setIsAuthenticated will be called only after PIN is successfully created
-      } else {
-        throw new Error("Failed to create account in database");
+        if (response.user) {
+          // Step 5: Store user data in local store and storage
+          await updateUserFromAPI({
+            user: response.user,
+            bankAccounts: response.bankAccounts || [],
+            transactions: response.transactions || [],
+          });
+          await localStorage.setUserData({
+            user: response.user,
+            bankAccounts: response.bankAccounts || [],
+            transactions: response.transactions || [],
+          });
+          console.log("User data stored locally");
+
+          // Step 6: Store user data and show PIN modal (don't set authenticated yet)
+          setCreatedUserData(response);
+          console.log("About to show PIN modal...");
+          setShowPinModal(true);
+          console.log("PIN modal state set to true");
+          // Note: setIsAuthenticated will be called only after PIN is successfully created
+        } else {
+          throw new Error("Failed to create account in database");
+        }
+      } catch (apiError: any) {
+        console.error("API Error creating account:", apiError);
+
+        // Queue the action for later if offline
+        if (clerkUserId) {
+          const userData = {
+            user: {
+              id: "temp_" + Date.now(),
+              firstName: form.firstName.toLowerCase().trim(),
+              lastName: form.lastName.toLowerCase().trim(),
+              username: form.username.toLowerCase().trim(),
+              email: form.email.toLowerCase().trim(),
+              clerkUserId: clerkUserId,
+              createdAt: new Date().toISOString(),
+            },
+            bankAccounts: [],
+            transactions: [],
+          };
+
+          await updateUserFromAPI(userData);
+          await localStorage.setUserData(userData);
+
+          await syncManager.queueAction({
+            type: "create_account",
+            data: {
+              firstName: form.firstName.toLowerCase().trim(),
+              lastName: form.lastName.toLowerCase().trim(),
+              username: form.username.toLowerCase().trim(),
+              email: form.email.toLowerCase().trim(),
+            },
+          });
+
+          setCreatedUserData(userData);
+          setShowPinModal(true);
+
+          Alert.alert(
+            "Offline Mode",
+            "Account will be created when connection is restored. Please set your PIN to continue.",
+          );
+        } else {
+          throw apiError;
+        }
       }
     } catch (error: any) {
       console.error("Sign-up error:", error);
@@ -450,21 +476,47 @@ const SignUp = () => {
         isLoading={isCreatingPin}
         onClose={() => {
           console.log("PIN modal onClose called");
-          Alert.alert(
-            "PIN Required",
-            "A transaction PIN is required to use the app. Do you want to set it up later?",
-            [
-              { text: "Set PIN Now", style: "cancel" },
-              {
-                text: "Later",
-                onPress: () => {
-                  setShowPinModal(false);
-                  setIsAuthenticated(true);
-                  router.replace("/(app)");
+          if (createdUserData) {
+            Alert.alert(
+              "PIN Required",
+              "A transaction PIN is required to use the app. Do you want to complete PIN setup now?",
+              [
+                {
+                  text: "Complete PIN Setup",
+                  style: "cancel",
+                  onPress: () => {
+                    // Keep modal open
+                    setShowPinModal(true);
+                  },
                 },
-              },
-            ],
-          );
+                {
+                  text: "Skip for Now",
+                  onPress: async () => {
+                    // Store incomplete pin setup flag
+                    setPinSetupIncomplete(true);
+                    await localStorage.setUserData({
+                      ...createdUserData,
+                      user: {
+                        ...createdUserData.user,
+                        hasTransactionPin: false,
+                      },
+                    });
+
+                    setIsAuthenticated(true);
+                    await localStorage.setAuthenticated(true);
+
+                    // Start sync manager
+                    syncManager.startAutoSync(createdUserData.user.clerkUserId);
+
+                    setShowPinModal(false);
+                    router.replace("/(app)");
+                  },
+                },
+              ],
+            );
+          } else {
+            setShowPinModal(false);
+          }
         }}
         onSuccess={handlePinSuccess}
         title="Create your Stase PIN"

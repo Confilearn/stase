@@ -5,7 +5,9 @@ import PinModal from "@/components/PinModal";
 import { useAuthStore } from "@/store/auth.store";
 import { useThemeStore } from "@/store/theme.store";
 import { useUserStore } from "@/store/user.store";
-import { tokenStorage } from "@/utils/tokenStorage";
+import { api } from "@/utils/api";
+import { localStorage } from "@/utils/localStorage";
+import { syncManager } from "@/utils/sync";
 import { useAuth, useOAuth, useSignIn } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { useState } from "react";
@@ -38,8 +40,7 @@ const SignIn = () => {
   const { setIsAuthenticated } = useAuthStore();
   const router = useRouter();
   const { signIn, setActive, isLoaded } = useSignIn();
-  const { getToken } = useAuth();
-  const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
+  const { getToken, userId } = useAuth();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleSigning, setIsGoogleSigning] = useState(false);
@@ -68,19 +69,13 @@ const SignIn = () => {
       );
 
       // Call API to set transaction PIN
-      const response = await fetch("/api/createUserTransactionPin", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${signedInUserData.user.clerkUserId}`,
-        },
-        body: JSON.stringify({ pin }),
-      });
+      const response = await api.createUserTransactionPin(
+        pin,
+        signedInUserData.user.clerkUserId,
+      );
 
-      const responseData = await response.json();
-
-      if (response.ok) {
-        console.log("PIN set successfully for sign-in user:", responseData);
+      if (response.success) {
+        console.log("PIN set successfully for sign-in user:", response);
 
         // Update user data with PIN status
         const updatedUserData = {
@@ -92,117 +87,64 @@ const SignIn = () => {
         };
 
         await updateUserFromAPI(updatedUserData);
+        await localStorage.setUserData(updatedUserData);
         setIsAuthenticated(true);
+        await localStorage.setAuthenticated(true);
+
+        // Start sync manager
+        syncManager.startAutoSync(signedInUserData.user.clerkUserId);
 
         setShowPinModal(false);
         Alert.alert("Success", "PIN created successfully!");
         router.replace("/(app)");
       } else {
-        console.error("PIN API error:", responseData);
+        console.error("PIN API error:", response);
         Alert.alert(
           "Error",
-          responseData.error || "Failed to set PIN. Please try again.",
+          response.error || "Failed to set PIN. Please try again.",
         );
       }
     } catch (error: any) {
       console.error("Error setting PIN:", error);
-      Alert.alert(
-        "Connection Error",
-        "Unable to connect to server. Please check your connection and try again.",
-      );
+
+      // Queue the action for later if offline
+      if (signedInUserData?.user.clerkUserId) {
+        await syncManager.queueAction({
+          type: "set_pin",
+          data: { pin },
+        });
+
+        Alert.alert(
+          "Offline Mode",
+          "PIN will be set when connection is restored. You can continue using the app.",
+        );
+
+        // Continue with the flow anyway
+        const updatedUserData = {
+          ...signedInUserData,
+          user: {
+            ...signedInUserData.user,
+            hasTransactionPin: true,
+          },
+        };
+
+        await updateUserFromAPI(updatedUserData);
+        await localStorage.setUserData(updatedUserData);
+        setIsAuthenticated(true);
+        await localStorage.setAuthenticated(true);
+
+        setShowPinModal(false);
+        router.replace("/(app)");
+      } else {
+        Alert.alert(
+          "Connection Error",
+          "Unable to connect to server. Please check your connection and try again.",
+        );
+      }
     } finally {
       setIsCreatingPin(false);
     }
   };
-
-  // /**
-  //  * Handle Google OAuth sign-in flow
-  //  * Initiates OAuth flow and handles user authentication
-  //  */
-  // const handleGoogleSignIn = async () => {
-  //   if (!isLoaded) return;
-
-  //   setIsGoogleSigning(true);
-
-  //   try {
-  //     // Start OAuth flow with Google
-  //     const { createdSessionId, signIn } = await startOAuthFlow();
-
-  //     if (createdSessionId) {
-  //       // Successfully authenticated with Google
-  //       await setActive({ session: createdSessionId });
-
-  //       // Get and store the token
-  //       const token = await getToken();
-  //       if (token) {
-  //         await tokenStorage.saveToken(token);
-  //       }
-
-  //       // Check if user has transaction PIN
-  //       try {
-  //         const response = await fetch("/api/checkTransactionPin", {
-  //           method: "GET",
-  //           headers: {
-  //             "Content-Type": "application/json",
-  //             Authorization: `Bearer ${token}`,
-  //           },
-  //         });
-
-  //         if (response.ok) {
-  //           const data = await response.json();
-
-  //           // Get user data from getUserData endpoint
-  //           const userResponse = await fetch("/api/getUserData", {
-  //             method: "POST",
-  //             headers: {
-  //               "Content-Type": "application/json",
-  //               Authorization: `Bearer ${token}`,
-  //             },
-  //             body: JSON.stringify({
-  //               clerkUserId: token,
-  //             }),
-  //           });
-
-  //           if (userResponse.status === 200) {
-  //             const userData = await userResponse.json();
-  //             await updateUserFromAPI(userData);
-  //             setSignedInUserData(userData);
-
-  //             if (data.hasTransactionPin) {
-  //               // User has PIN, set authentication and redirect to app
-  //               setIsAuthenticated(true);
-  //               router.replace("/(app)");
-  //             } else {
-  //               // User doesn't have PIN, show PIN modal
-  //               setShowPinModal(true);
-  //             }
-  //           } else {
-  //             // Handle case where user data doesn't exist - redirect to Google OAuth completion
-  //             router.replace("/(auth)/googleOauth");
-  //           }
-  //         } else {
-  //           // If check fails, redirect to Google OAuth completion
-  //           router.replace("/(auth)/googleOauth");
-  //         }
-  //       } catch (error) {
-  //         console.error("Error checking PIN status for Google user:", error);
-  //         // If there's an error, redirect to Google OAuth completion
-  //         router.replace("/(auth)/googleOauth");
-  //       }
-  //     } else {
-  //       // OAuth failed or was cancelled
-  //       Alert.alert(
-  //         "Error",
-  //         "Google sign-in was cancelled or failed. Please try again.",
-  //       );
-  //     }
-  //   } catch (error: any) {
-  //     console.error("Google OAuth error:", error);
-  //     Alert.alert("Error", "Failed to sign in with Google. Please try again.");
-  //   } finally {
-  //     setIsGoogleSigning(false);
-  //   }
-  // };
 
   const submit = async () => {
     // reset any previous errors
@@ -238,62 +180,110 @@ const SignIn = () => {
         // Get and store the token
         const token = await getToken();
         if (token) {
-          await tokenStorage.saveToken(token);
+          await localStorage.setAuthToken(token);
+        }
+
+        // Get the clerkUserId for API calls
+        const clerkUserId = userId;
+        if (!clerkUserId) {
+          throw new Error("Failed to get user ID from authentication");
         }
 
         // Check if user has transaction PIN
         try {
-          const response = await fetch("/api/checkTransactionPin", {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          });
+          const response = await api.checkTransactionPin(clerkUserId);
 
-          if (response.ok) {
-            const data = await response.json();
-
+          if (response.success !== undefined) {
             // Get user data from getUserData endpoint
-            const userResponse = await fetch("/api/getUserData", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                clerkUserId: token,
-              }),
-            });
+            try {
+              const userData = await api.getUserData(clerkUserId);
 
-            if (userResponse.status === 200) {
-              const userData = await userResponse.json();
-              await updateUserFromAPI(userData);
-              setSignedInUserData(userData);
+              if (userData.user) {
+                await updateUserFromAPI({
+                  user: userData.user,
+                  bankAccounts: userData.bankAccounts || [],
+                  transactions: userData.transactions || [],
+                });
+                await localStorage.setUserData({
+                  user: userData.user,
+                  bankAccounts: userData.bankAccounts || [],
+                  transactions: userData.transactions || [],
+                });
+                setSignedInUserData(userData);
 
-              if (data.hasTransactionPin) {
-                // User has PIN, set authentication and redirect to app
-                setIsAuthenticated(true);
-                router.replace("/(app)");
+                if (response.success) {
+                  // User has PIN, set authentication and redirect to app
+                  setIsAuthenticated(true);
+                  await localStorage.setAuthenticated(true);
+
+                  // Start sync manager
+                  syncManager.startAutoSync(clerkUserId);
+
+                  router.replace("/(app)");
+                } else {
+                  // User doesn't have PIN, show PIN modal
+                  setShowPinModal(true);
+                }
               } else {
-                // User doesn't have PIN, show PIN modal
-                setShowPinModal(true);
+                // Handle case where user data doesn't exist
+                Alert.alert(
+                  "Error",
+                  "User account not found. Please sign up first.",
+                );
               }
-            } else {
-              // Handle case where user data doesn't exist
-              Alert.alert(
-                "Error",
-                "User account not found. Please sign up first.",
-              );
+            } catch (userError) {
+              console.error("Error getting user data:", userError);
+              // If check fails, redirect to app anyway (fallback)
+              await setIsAuthenticated(true);
+              await localStorage.setAuthenticated(true);
+              router.replace("/(app)");
             }
           } else {
             // If check fails, redirect to app anyway (fallback)
+            await setIsAuthenticated(true);
+            await localStorage.setAuthenticated(true);
             router.replace("/(app)");
           }
         } catch (error) {
           console.error("Error checking PIN status:", error);
-          // If there's an error, redirect to app anyway (fallback)
-          router.replace("/(app)");
+          // If there's an error, try to get user data anyway
+          try {
+            const userData = await api.getUserData(clerkUserId);
+            if (userData.user) {
+              await updateUserFromAPI({
+                user: userData.user,
+                bankAccounts: userData.bankAccounts || [],
+                transactions: userData.transactions || [],
+              });
+              await localStorage.setUserData({
+                user: userData.user,
+                bankAccounts: userData.bankAccounts || [],
+                transactions: userData.transactions || [],
+              });
+              setSignedInUserData(userData);
+
+              // Check if user has PIN based on local data
+              if (userData.user.hasTransactionPin) {
+                await setIsAuthenticated(true);
+                await localStorage.setAuthenticated(true);
+                syncManager.startAutoSync(clerkUserId);
+                router.replace("/(app)");
+              } else {
+                setShowPinModal(true);
+              }
+            } else {
+              // Fallback: redirect to app
+              await setIsAuthenticated(true);
+              await localStorage.setAuthenticated(true);
+              router.replace("/(app)");
+            }
+          } catch (fallbackError) {
+            console.error("Fallback error:", fallbackError);
+            // If all fails, redirect to app anyway
+            await setIsAuthenticated(true);
+            await localStorage.setAuthenticated(true);
+            router.replace("/(app)");
+          }
         }
       }
     } catch (error: any) {
@@ -351,24 +341,6 @@ const SignIn = () => {
           </View>
 
           <View style={{ flex: 1 }} />
-
-          {/* Google Sign-In Button */}
-          {/* <TouchableOpacity
-            className="flex-row items-center justify-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-3 mb-3"
-            onPress={handleGoogleSignIn}
-            disabled={isGoogleSigning}
-          >
-            <Text className="text-base font-medium text-gray-700 dark:text-gray-300 mr-2">
-              {isGoogleSigning ? "Connecting..." : "Sign in with Google"}
-            </Text>
-          </TouchableOpacity> */}
-
-          {/* Divider
-          <View className="flex-row items-center mb-3">
-            <View className="flex-1 h-px bg-gray-300 dark:bg-gray-600" />
-            <Text className="px-3 text-sm text-gray-500 dark:text-gray-400">OR</Text>
-            <View className="flex-1 h-px bg-gray-300 dark:bg-gray-600" />
-          </View> */}
 
           <CustomButton
             title="Log in"

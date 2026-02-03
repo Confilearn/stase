@@ -1,6 +1,6 @@
 import CustomButton from "@/components/CustomButton";
 import { images } from "@/constants";
-import { tokenStorage } from "@/utils/tokenStorage";
+import { localStorage } from "@/utils/localStorage";
 import { useAuth, useOAuth } from "@clerk/clerk-expo";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -31,7 +31,7 @@ const Welcome = () => {
         // Get and store the token
         const token = await getToken();
         if (token) {
-          await tokenStorage.saveToken(token);
+          await localStorage.setAuthToken(token);
         }
 
         router.replace("/(app)");

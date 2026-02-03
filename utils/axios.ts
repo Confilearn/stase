@@ -16,8 +16,8 @@ export const axiosInstance = Axios.create({
 // Add request interceptor to include auth token (clerkUserId)
 axiosInstance.interceptors.request.use(async (config) => {
   try {
-    const { tokenStorage } = await import("./tokenStorage");
-    const clerkUserId = await tokenStorage.getToken();
+    const { localStorage } = await import("./localStorage");
+    const clerkUserId = await localStorage.getAuthToken();
 
     if (clerkUserId) {
       config.headers.Authorization = `Bearer ${clerkUserId}`;

@@ -2,7 +2,7 @@ import { DatabaseProvider } from "@/contexts/DatabaseContext";
 import { useAuthStore } from "@/store/auth.store";
 import { useThemeStore } from "@/store/theme.store";
 import { useUserStore } from "@/store/user.store";
-import { tokenStorage } from "@/utils/tokenStorage";
+import { localStorage } from "@/utils/localStorage";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { useFonts } from "expo-font";
@@ -31,8 +31,8 @@ export default function RootLayout() {
         // Check auth status from store first
         await checkAuthStatus();
 
-        // Then verify with token storage (clerkUserId)
-        const clerkUserId = await tokenStorage.getToken();
+        // Then verify with localStorage (clerkUserId)
+        const clerkUserId = await localStorage.getAuthToken();
         console.log("Stored clerkUserId:", clerkUserId);
 
         // Set auth based on clerkUserId existence
@@ -67,7 +67,10 @@ export default function RootLayout() {
 
   return (
     <DatabaseProvider>
-      <ClerkProvider tokenCache={tokenCache} publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY}>
+      <ClerkProvider
+        tokenCache={tokenCache}
+        publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      >
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Protected guard={isAuthenticated}>
             <Stack.Screen name="(app)" />
