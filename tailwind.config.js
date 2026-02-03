@@ -15,14 +15,14 @@ module.exports = {
           400: "#D9D9D9",
           500: "#FFFFFF",
         },
-        bg:{
+        bg: {
           light: "#FFFFFF",
           dark: "#0E0F0C",
           neutral: "#16330014",
         },
-        error: "#A8200D",
+        error: "#dc2626",
         success: "#05D23F",
-        warning: "#EDC843"
+        warning: "#EDC843",
       },
       fontFamily: {
         metropolis: ["metropolis", "sans-serif"],

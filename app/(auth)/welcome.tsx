@@ -44,18 +44,18 @@ const Welcome = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-bg-light dark:bg-bg-dark items-center p-4">
+    <SafeAreaView className="flex-1 justify-around bg-bg-light gap-8 dark:bg-bg-dark items-center p-4">
       <Image
         source={images.wallet}
-        className="size-[300px] mt-8"
+        className="size-[300px] mt-4"
         resizeMode="contain"
       />
 
-      <Text className="text-5xl font-metropolis-extrabold text-center text-content-100 dark:text-content-500 mt-24 leading-tight tracking-tighter">
+      <Text className="text-5xl font-metropolis-extrabold text-center pt-12 text-content-100 dark:text-content-500 leading-tight tracking-tighter">
         SEND MONEY AND GET PAID WITH EASE
       </Text>
 
-      <View className="w-full flex gap-4 flex-1 justify-end my-2">
+      <View className="w-full flex gap-4 flex-1 justify-end py-2">
         <View className="flex-row items-center justify-center gap-2">
           <CustomButton
             title="Log in"

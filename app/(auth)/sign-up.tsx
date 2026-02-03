@@ -295,10 +295,7 @@ const SignUp = () => {
           <Link href={"/welcome"}>
             <ChevronLeft />
           </Link>
-          <Text
-            onPress={() => setShowPinModal(true)}
-            className="text-2xl font-metropolis-semibold text-content-100 dark:text-content-500"
-          >
+          <Text className="text-2xl font-metropolis-semibold text-content-100 dark:text-content-500">
             Create Account
           </Text>
         </View>
