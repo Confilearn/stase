@@ -6,7 +6,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
 interface PinModalProps {
@@ -16,8 +16,6 @@ interface PinModalProps {
   title?: string;
   isLoading?: boolean;
 }
-
-const { width } = Dimensions.get("window");
 
 const PinModal: React.FC<PinModalProps> = ({
   visible,
@@ -35,12 +33,12 @@ const PinModal: React.FC<PinModalProps> = ({
   const handleNumberPress = (num: string) => {
     if (isLoading) return; // Prevent input when loading
     setError(""); // Clear error on new input
-    
+
     if (isConfirmStep) {
       if (confirmPin.length < 4) {
         const newConfirmPin = confirmPin + num;
         setConfirmPin(newConfirmPin);
-        
+
         // If confirm PIN is complete, validate and call onSuccess
         if (newConfirmPin.length === 4) {
           if (newConfirmPin === pin) {
@@ -60,7 +58,7 @@ const PinModal: React.FC<PinModalProps> = ({
       if (pin.length < 4) {
         const newPin = pin + num;
         setPin(newPin);
-        
+
         // If PIN is complete, move to confirm step
         if (newPin.length === 4) {
           setTimeout(() => {
@@ -141,10 +139,7 @@ const PinModal: React.FC<PinModalProps> = ({
             disabled={num === ""}
           >
             <Text
-              style={[
-                styles.numberText,
-                num === "⌫" && styles.backspaceText,
-              ]}
+              style={[styles.numberText, num === "⌫" && styles.backspaceText]}
             >
               {num}
             </Text>
@@ -161,23 +156,21 @@ const PinModal: React.FC<PinModalProps> = ({
       presentationStyle="fullScreen"
       onRequestClose={handleClose}
     >
-      <View style={styles.container}>
+      <View className="flex-1 bg-bg-light p-4 relative">
         <View style={styles.content}>
           <Text style={styles.title}>
             {isConfirmStep ? "Confirm your PIN" : title}
           </Text>
-          
+
           {renderPinIndicators()}
-          
+
           {isLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#3b82f6" />
               <Text style={styles.loadingText}>Setting up your PIN...</Text>
             </View>
           ) : (
-            <View style={styles.numberPad}>
-              {renderNumberPad()}
-            </View>
+            <View style={styles.numberPad}>{renderNumberPad()}</View>
           )}
         </View>
       </View>
@@ -262,12 +255,12 @@ const styles = StyleSheet.create({
     color: "#666",
     textAlign: "center",
   },
-  errorText:{
+  errorText: {
     color: "#dc2626",
     fontSize: 12,
     marginTop: 8,
     textAlign: "center",
-  }
+  },
 });
 
 export default PinModal;
