@@ -3,11 +3,9 @@ import CustomButton from "@/components/CustomButton";
 import CustomInput from "@/components/CustomInput";
 import PinModal from "@/components/PinModal";
 import { useAuthStore } from "@/store/auth.store";
-import { useThemeStore } from "@/store/theme.store";
 import { useUserStore } from "@/store/user.store";
 import { api } from "@/utils/api";
 import { localStorage } from "@/utils/localStorage";
-import { syncManager } from "@/utils/sync";
 import { useAuth, useOAuth, useSignIn } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { useState } from "react";
@@ -35,7 +33,6 @@ const signInSchema = z.object({
 });
 
 const SignIn = () => {
-  const { setTheme } = useThemeStore();
   const { updateUserFromAPI } = useUserStore();
   const { setIsAuthenticated } = useAuthStore();
   const router = useRouter();
@@ -43,7 +40,6 @@ const SignIn = () => {
   const { getToken, userId } = useAuth();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGoogleSigning, setIsGoogleSigning] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
   const [isCreatingPin, setIsCreatingPin] = useState(false);
   const [signedInUserData, setSignedInUserData] = useState<any>(null);
@@ -91,9 +87,6 @@ const SignIn = () => {
         setIsAuthenticated(true);
         await localStorage.setAuthenticated(true);
 
-        // Start sync manager
-        syncManager.startAutoSync(signedInUserData.user.clerkUserId);
-
         setShowPinModal(false);
         Alert.alert("Success", "PIN created successfully!");
         router.replace("/(app)");
@@ -106,41 +99,6 @@ const SignIn = () => {
       }
     } catch (error: any) {
       console.error("Error setting PIN:", error);
-
-      // Queue the action for later if offline
-      if (signedInUserData?.user.clerkUserId) {
-        await syncManager.queueAction({
-          type: "set_pin",
-          data: { pin },
-        });
-
-        Alert.alert(
-          "Offline Mode",
-          "PIN will be set when connection is restored. You can continue using the app.",
-        );
-
-        // Continue with the flow anyway
-        const updatedUserData = {
-          ...signedInUserData,
-          user: {
-            ...signedInUserData.user,
-            hasTransactionPin: true,
-          },
-        };
-
-        await updateUserFromAPI(updatedUserData);
-        await localStorage.setUserData(updatedUserData);
-        setIsAuthenticated(true);
-        await localStorage.setAuthenticated(true);
-
-        setShowPinModal(false);
-        router.replace("/(app)");
-      } else {
-        Alert.alert(
-          "Connection Error",
-          "Unable to connect to server. Please check your connection and try again.",
-        );
-      }
     } finally {
       setIsCreatingPin(false);
     }
@@ -216,9 +174,6 @@ const SignIn = () => {
                   setIsAuthenticated(true);
                   await localStorage.setAuthenticated(true);
 
-                  // Start sync manager
-                  syncManager.startAutoSync(clerkUserId);
-
                   router.replace("/(app)");
                 } else {
                   // User doesn't have PIN, show PIN modal
@@ -266,7 +221,6 @@ const SignIn = () => {
               if (userData.user.hasTransactionPin) {
                 await setIsAuthenticated(true);
                 await localStorage.setAuthenticated(true);
-                syncManager.startAutoSync(clerkUserId);
                 router.replace("/(app)");
               } else {
                 setShowPinModal(true);
@@ -306,20 +260,18 @@ const SignIn = () => {
           className="h-full"
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ flexGrow: 1 }}
+          showsVerticalScrollIndicator={false}
         >
-          <View className="flex-row gap-5 mt-4 items-center">
+          <View className="flex-row gap-5 mt-2 items-center">
             <Link href={"/welcome"}>
               <ChevronLeft />
             </Link>
-            <Text
-              onPress={() => setTheme("system")}
-              className="text-2xl font-metropolis-semibold text-content-100 dark:text-content-500"
-            >
+            <Text className="text-2xl font-metropolis-semibold text-content-100 dark:text-content-500">
               Sign In
             </Text>
           </View>
 
-          <View className="w-full flex gap-12 mt-12">
+          <View className="w-full flex gap-12 mt-10">
             <CustomInput
               label={"Email"}
               value={form.email}
@@ -344,7 +296,7 @@ const SignIn = () => {
 
           <CustomButton
             title="Log in"
-            style="mt-8"
+            style="mt-8 mb-2"
             onPress={submit}
             isLoading={isSubmitting}
           />

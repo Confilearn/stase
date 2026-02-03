@@ -60,10 +60,6 @@ interface UserState {
   setTransactionPinStatus: (hasPin: boolean) => void;
 }
 
-const USER_STORAGE_KEY = "@user_data";
-const BANK_ACCOUNTS_STORAGE_KEY = "@bank_accounts_data";
-const TRANSACTIONS_STORAGE_KEY = "@transactions_data";
-
 export const useUserStore = create<UserState>((set, get) => ({
   user: null,
   bankAccounts: [],

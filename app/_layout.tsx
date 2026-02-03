@@ -36,7 +36,6 @@ export default function RootLayout() {
 
         // Then verify with localStorage (clerkUserId)
         const clerkUserId = await localStorage.getAuthToken();
-        console.log("Stored clerkUserId:", clerkUserId);
 
         // Set auth based on clerkUserId existence
         setIsAuthenticated(!!clerkUserId);

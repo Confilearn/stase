@@ -3,7 +3,6 @@ import PinModal from "@/components/PinModal";
 import { useUserStore } from "@/store/user.store";
 import { api } from "@/utils/api";
 import { localStorage } from "@/utils/localStorage";
-import { syncManager } from "@/utils/sync";
 import { useAuth } from "@clerk/clerk-expo";
 import { Link } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -105,39 +104,6 @@ const index = () => {
       }
     } catch (error: any) {
       console.error("Error setting PIN:", error);
-
-      // Queue the action for later if offline
-      if (userData?.user.clerkUserId) {
-        await syncManager.queueAction({
-          type: "set_pin",
-          data: { pin },
-        });
-
-        Alert.alert(
-          "Offline Mode",
-          "PIN will be set when connection is restored. You can continue using the app.",
-        );
-
-        // Continue with the flow anyway
-        const updatedUserData = {
-          ...userData,
-          user: {
-            ...userData.user,
-            hasTransactionPin: true,
-          },
-        };
-
-        await updateUserFromAPI(updatedUserData);
-        await localStorage.setUserData(updatedUserData);
-        setUserData(updatedUserData);
-
-        setShowPinModal(false);
-      } else {
-        Alert.alert(
-          "Connection Error",
-          "Unable to connect to server. Please check your connection and try again.",
-        );
-      }
     } finally {
       setIsCreatingPin(false);
     }

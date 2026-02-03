@@ -3,11 +3,12 @@ import {
   ActivityIndicator,
   Dimensions,
   Modal,
-  StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
+import { useColorScheme } from "react-native";
+import { StatusBar } from "expo-status-bar";
 
 interface PinModalProps {
   visible: boolean;
@@ -16,8 +17,6 @@ interface PinModalProps {
   title?: string;
   isLoading?: boolean;
 }
-
-const { width } = Dimensions.get("window");
 
 const PinModal: React.FC<PinModalProps> = ({
   visible,
@@ -31,16 +30,18 @@ const PinModal: React.FC<PinModalProps> = ({
   const [isConfirmStep, setIsConfirmStep] = useState(false);
   const [error, setError] = useState("");
 
+  const colorScheme = useColorScheme();
+
   // Handle number press
   const handleNumberPress = (num: string) => {
     if (isLoading) return; // Prevent input when loading
     setError(""); // Clear error on new input
-    
+
     if (isConfirmStep) {
       if (confirmPin.length < 4) {
         const newConfirmPin = confirmPin + num;
         setConfirmPin(newConfirmPin);
-        
+
         // If confirm PIN is complete, validate and call onSuccess
         if (newConfirmPin.length === 4) {
           if (newConfirmPin === pin) {
@@ -60,7 +61,7 @@ const PinModal: React.FC<PinModalProps> = ({
       if (pin.length < 4) {
         const newPin = pin + num;
         setPin(newPin);
-        
+
         // If PIN is complete, move to confirm step
         if (newPin.length === 4) {
           setTimeout(() => {
@@ -97,14 +98,13 @@ const PinModal: React.FC<PinModalProps> = ({
   const renderPinIndicators = () => {
     const currentPin = isConfirmStep ? confirmPin : pin;
     return (
-      <View style={styles.pinIndicators}>
+      <View className="flex-row mb-8 gap-5">
         {[0, 1, 2, 3].map((index) => (
           <View
             key={index}
-            style={[
-              styles.pinIndicator,
-              index < currentPin.length && styles.pinIndicatorFilled,
-            ]}
+            className={`w-7 h-7 rounded-2xl ${
+              index < currentPin.length ? "bg-primary" : "bg-content-400"
+            }`}
           />
         ))}
       </View>
@@ -121,16 +121,11 @@ const PinModal: React.FC<PinModalProps> = ({
     ];
 
     return numbers.map((row, rowIndex) => (
-      <View key={rowIndex} style={styles.numberRow}>
-        {error && <Text style={styles.errorText}>{error}</Text>}
+      <View key={rowIndex} className="flex-row justify-between">
         {row.map((num, colIndex) => (
           <TouchableOpacity
             key={`${rowIndex}-${colIndex}`}
-            style={[
-              styles.numberButton,
-              num === "" && styles.emptyButton,
-              num === "⌫" && styles.backspaceButton,
-            ]}
+            className={`w-[70px] h-[70px] rounded-[35px] justify-center items-center`}
             onPress={() => {
               if (num === "⌫") {
                 handleBackspace();
@@ -141,10 +136,7 @@ const PinModal: React.FC<PinModalProps> = ({
             disabled={num === ""}
           >
             <Text
-              style={[
-                styles.numberText,
-                num === "⌫" && styles.backspaceText,
-              ]}
+              className={`font-metropolis-semibold text-[28px] text-content-200 dark:text-content-500 `}
             >
               {num}
             </Text>
@@ -155,119 +147,49 @@ const PinModal: React.FC<PinModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={handleClose}
-    >
-      <View style={styles.container}>
-        <View style={styles.content}>
-          <Text style={styles.title}>
-            {isConfirmStep ? "Confirm your PIN" : title}
-          </Text>
-          
-          {renderPinIndicators()}
-          
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#3b82f6" />
-              <Text style={styles.loadingText}>Setting up your PIN...</Text>
+    <>
+      <StatusBar
+        style={colorScheme === "dark" ? "light" : "dark"}
+        backgroundColor={colorScheme === "dark" ? "#0E0F0C" : "#FFFFFF"}
+      />
+
+      <Modal
+        visible={visible}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={handleClose}
+      >
+        {isLoading ? (
+          <View className="flex-1 justify-center items-center bg-bg-light dark:bg-bg-dark">
+            <ActivityIndicator size="large" className="text-primary" />
+            <Text className="mt-4 text-2xl font-metropolis-semibold text-center text-content-100 dark:text-content-500">
+              Setting up your PIN...
+            </Text>
+          </View>
+        ) : (
+          <View className="flex-1 bg-bg-light dark:bg-bg-dark p-5">
+            <View className="flex-1 mt-8">
+              <Text className="mb-8 text-[26px] font-metropolis-semibold text-content-200 dark:text-content-500">
+                {isConfirmStep ? "Confirm your Stase PIN" : title}
+              </Text>
+
+              {renderPinIndicators()}
+
+              {error && (
+                <Text className="mb-10 text-[17px] font-metropolis-semibold text-error">
+                  {error}
+                </Text>
+              )}
+
+              <View className="w-full max-w-[350px] flex gap-7 justify-end flex-1 mb-8">
+                {renderNumberPad()}
+              </View>
             </View>
-          ) : (
-            <View style={styles.numberPad}>
-              {renderNumberPad()}
-            </View>
-          )}
-        </View>
-      </View>
-    </Modal>
+          </View>
+        )}
+      </Modal>
+    </>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-  },
-  content: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "600",
-    marginBottom: 40,
-    textAlign: "center",
-  },
-  pinIndicators: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 60,
-    gap: 15,
-  },
-  pinIndicator: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#e0e0e0",
-  },
-  pinIndicatorFilled: {
-    backgroundColor: "#3b82f6",
-    borderColor: "#3b82f6",
-  },
-  numberPad: {
-    width: "100%",
-    maxWidth: 300,
-  },
-  numberRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  numberButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: "#f8f9fa",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  emptyButton: {
-    backgroundColor: "transparent",
-  },
-  backspaceButton: {
-    backgroundColor: "#fee2e2",
-  },
-  numberText: {
-    fontSize: 24,
-    fontWeight: "500",
-  },
-  backspaceText: {
-    fontSize: 20,
-    color: "#dc2626",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 40,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-  },
-  errorText:{
-    color: "#dc2626",
-    fontSize: 12,
-    marginTop: 8,
-    textAlign: "center",
-  }
-});
 
 export default PinModal;

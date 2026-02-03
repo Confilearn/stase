@@ -3,14 +3,12 @@ import CustomButton from "@/components/CustomButton";
 import CustomInput from "@/components/CustomInput";
 import PinModal from "@/components/PinModal";
 import { useAuthStore } from "@/store/auth.store";
-import { useThemeStore } from "@/store/theme.store";
 import { useUserStore } from "@/store/user.store";
 import { api } from "@/utils/api";
 import { localStorage } from "@/utils/localStorage";
-import { syncManager } from "@/utils/sync";
-import { useAuth, useOAuth, useSignUp } from "@clerk/clerk-expo";
+import { useAuth, useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -54,18 +52,15 @@ const signUpSchema = z.object({
 });
 
 const SignUp = () => {
-  const { setTheme } = useThemeStore();
   const { updateUserFromAPI } = useUserStore();
   const { setIsAuthenticated } = useAuthStore();
   const router = useRouter();
 
   // Clerk hooks for authentication
-  const { isLoaded, signUp, setActive } = useSignUp();
-  const { getToken, userId, signOut } = useAuth();
-  const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
+  const { isLoaded, signUp } = useSignUp();
+  const { getToken, userId } = useAuth();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGoogleSigning, setIsGoogleSigning] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
   const [isCreatingPin, setIsCreatingPin] = useState(false);
   const [createdUserData, setCreatedUserData] = useState<any>(null);
@@ -84,10 +79,6 @@ const SignUp = () => {
     lastName: "",
     username: "",
   });
-
-  useEffect(() => {
-    console.log("PIN modal visible:", showPinModal);
-  }, [showPinModal]);
 
   // Handle PIN creation success
   const handlePinSuccess = async (pin: string) => {
@@ -130,9 +121,6 @@ const SignUp = () => {
         setIsAuthenticated(true);
         await localStorage.setAuthenticated(true);
 
-        // Start sync manager
-        syncManager.startAutoSync(createdUserData.user.clerkUserId);
-
         setShowPinModal(false);
         Alert.alert("Success", "Account created successfully!");
         router.replace("/(app)");
@@ -145,41 +133,10 @@ const SignUp = () => {
       }
     } catch (error: any) {
       console.error("Error setting PIN:", error);
-
-      // Queue the action for later if offline
-      if (createdUserData?.user.clerkUserId) {
-        await syncManager.queueAction({
-          type: "set_pin",
-          data: { pin },
-        });
-
-        Alert.alert(
-          "Offline Mode",
-          "PIN will be set when connection is restored. You can continue using the app.",
-        );
-
-        // Continue with the flow anyway
-        const updatedUserData = {
-          ...createdUserData,
-          user: {
-            ...createdUserData.user,
-            hasTransactionPin: true,
-          },
-        };
-
-        await updateUserFromAPI(updatedUserData);
-        await localStorage.setUserData(updatedUserData);
-        setIsAuthenticated(true);
-        await localStorage.setAuthenticated(true);
-
-        setShowPinModal(false);
-        router.replace("/(app)");
-      } else {
-        Alert.alert(
-          "Connection Error",
-          "Unable to connect to server. Please check your connection and try again.",
-        );
-      }
+      Alert.alert(
+        "Connection Error",
+        "Unable to connect to server. Please check your connection and try again.",
+      );
     } finally {
       setIsCreatingPin(false);
     }
@@ -241,7 +198,6 @@ const SignUp = () => {
             await updateUserFromAPI(responseData as any);
             setCreatedUserData(responseData);
             setShowPinModal(true);
-            // Note: setIsAuthenticated will be called only after PIN is successfully created
             return;
           }
         } else {
@@ -252,22 +208,15 @@ const SignUp = () => {
         }
       }
 
+      // If user is not signed in, create new user
       // Step 1: Create Clerk account
       const result = await signUp.create({
         emailAddress: form?.email,
         password: form?.password,
       });
+      console.log("Clerk sign-up result:", result);
 
-      console.log("Clerk account created:", result);
-
-      // Step 2: Skip session activation for now, rely on token
-
-      // if (result.createdSessionId) {
-      //   await setActive({ session: result.createdSessionId });
-      //   console.log("Session activated successfully");
-      // }
-
-      // Step 3: Get and store the clerkUserId from the sign-up result
+      // Step 2: Get and store the clerkUserId from the sign-up result
       const clerkUserId = result.createdUserId;
       if (clerkUserId) {
         await localStorage.setAuthToken(clerkUserId);
@@ -276,7 +225,7 @@ const SignUp = () => {
         console.warn("No clerkUserId received after account creation");
       }
 
-      // Step 4: Create User in DB
+      // Step 3: Create User in DB
       console.log("Creating user in database...");
       try {
         if (!clerkUserId) {
@@ -292,11 +241,10 @@ const SignUp = () => {
           },
           clerkUserId,
         );
-
         console.log("Database response:", response);
 
+        // Step 4: Store user data in local store and storage
         if (response.user) {
-          // Step 5: Store user data in local store and storage
           await updateUserFromAPI({
             user: response.user,
             bankAccounts: response.bankAccounts || [],
@@ -309,7 +257,7 @@ const SignUp = () => {
           });
           console.log("User data stored locally");
 
-          // Step 6: Store user data and show PIN modal (don't set authenticated yet)
+          // Step 5: Store user data and show PIN modal
           setCreatedUserData(response);
           console.log("About to show PIN modal...");
           setShowPinModal(true);
@@ -320,46 +268,6 @@ const SignUp = () => {
         }
       } catch (apiError: any) {
         console.error("API Error creating account:", apiError);
-
-        // Queue the action for later if offline
-        if (clerkUserId) {
-          const userData = {
-            user: {
-              id: "temp_" + Date.now(),
-              firstName: form.firstName.toLowerCase().trim(),
-              lastName: form.lastName.toLowerCase().trim(),
-              username: form.username.toLowerCase().trim(),
-              email: form.email.toLowerCase().trim(),
-              clerkUserId: clerkUserId,
-              createdAt: new Date().toISOString(),
-            },
-            bankAccounts: [],
-            transactions: [],
-          };
-
-          await updateUserFromAPI(userData);
-          await localStorage.setUserData(userData);
-
-          await syncManager.queueAction({
-            type: "create_account",
-            data: {
-              firstName: form.firstName.toLowerCase().trim(),
-              lastName: form.lastName.toLowerCase().trim(),
-              username: form.username.toLowerCase().trim(),
-              email: form.email.toLowerCase().trim(),
-            },
-          });
-
-          setCreatedUserData(userData);
-          setShowPinModal(true);
-
-          Alert.alert(
-            "Offline Mode",
-            "Account will be created when connection is restored. Please set your PIN to continue.",
-          );
-        } else {
-          throw apiError;
-        }
       }
     } catch (error: any) {
       console.error("Sign-up error:", error);
@@ -382,24 +290,22 @@ const SignUp = () => {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
+        <View className="flex-row gap-5 my-2 items-center">
+          <Link href={"/welcome"}>
+            <ChevronLeft />
+          </Link>
+          <Text className="text-2xl font-metropolis-semibold text-content-100 dark:text-content-500">
+            Create Account
+          </Text>
+        </View>
+
         <ScrollView
-          className="h-full"
+          className="flex-1"
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ flexGrow: 1 }}
+          showsVerticalScrollIndicator={false}
         >
-          <View className="flex-row gap-5 mt-4 items-center">
-            <Link href={"/welcome"}>
-              <ChevronLeft />
-            </Link>
-            <Text
-              onPress={() => setTheme("system")}
-              className="text-2xl font-metropolis-semibold text-content-100 dark:text-content-500"
-            >
-              Create Account
-            </Text>
-          </View>
-
-          <View className="w-full flex gap-12 mt-12">
+          <View className="w-full flex gap-10 mt-7">
             <CustomInput
               label={"First Name"}
               onChangeText={(text) =>
@@ -441,29 +347,9 @@ const SignUp = () => {
 
           <View style={{ flex: 1 }} />
 
-          {/* Google Sign-Up Button */}
-          {/* <TouchableOpacity
-            className="flex-row items-center justify-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-3 mb-3"
-            onPress={handleGoogleSignUp}
-            disabled={isGoogleSigning}
-          >
-            <Text className="text-base font-medium text-gray-700 dark:text-gray-300 mr-2">
-              {isGoogleSigning ? "Connecting..." : "Sign up with Google"}
-            </Text>
-          </TouchableOpacity> */}
-
-          {/* Divider */}
-          {/* <View className="flex-row items-center mb-3">
-            <View className="flex-1 h-px bg-gray-300 dark:bg-gray-600" />
-            <Text className="px-3 text-sm text-gray-500 dark:text-gray-400">
-              OR
-            </Text>
-            <View className="flex-1 h-px bg-gray-300 dark:bg-gray-600" />
-          </View> */}
-
           <CustomButton
             title="Get Started"
-            style="mt-8"
+            style="mt-8 mb-2"
             onPress={submit}
             isLoading={isSubmitting}
           />
@@ -504,9 +390,6 @@ const SignUp = () => {
 
                     setIsAuthenticated(true);
                     await localStorage.setAuthenticated(true);
-
-                    // Start sync manager
-                    syncManager.startAutoSync(createdUserData.user.clerkUserId);
 
                     setShowPinModal(false);
                     router.replace("/(app)");

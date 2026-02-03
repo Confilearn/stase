@@ -1,7 +1,7 @@
 // API utility for communicating with Express server
 
 const SERVER_URL =
-  process.env.EXPO_PUBLIC_SERVER_URL || "http://10.232.23.11:3000";
+  process.env.EXPO_PUBLIC_SERVER_URL || "http://10.66.160.11:3000";
 
 const API_BASE = `${SERVER_URL}/api`;
 

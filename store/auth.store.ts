@@ -7,8 +7,6 @@ interface AuthState {
   checkAuthStatus: () => Promise<void>;
 }
 
-const AUTH_STORAGE_KEY = "@is_authenticated";
-
 export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
 
