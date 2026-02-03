@@ -1,7 +1,7 @@
 import CustomButton from "@/components/CustomButton";
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
-import { tokenStorage } from "@/utils/tokenStorage";
+import { localStorage } from "@/utils/localStorage";
 import { useAuth } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { Alert, ScrollView, Text, View } from "react-native";
@@ -42,7 +42,7 @@ const Settings = () => {
               console.log("Authentication state cleared");
 
               // 4. Clear stored clerkUserId from AsyncStorage
-              await tokenStorage.removeToken();
+              await localStorage.removeAuthToken();
               console.log("Token cleared from storage");
 
               // 5. Navigate to welcome screen
