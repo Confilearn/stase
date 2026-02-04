@@ -41,10 +41,10 @@ const CustomInput = ({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           className={cn(
-            "p-3 border-content-200 dark:border-content-400 rounded-xl text-[16px] text-content-100 dark:text-content-500 font-metropolis-medium pt-4",
+            "p-3 rounded-xl text-[16px] text-content-100 dark:text-content-500 font-metropolis-medium pt-4",
             isFocused
               ? "border-primary dark:border-primary border-[1.5px]"
-              : "border-gray-300 border-[0.5px] ",
+              : "border-gray-300 dark:border-gray-600 border-[0.5px]",
             secureTextEntry && "pr-12",
           )}
         />
