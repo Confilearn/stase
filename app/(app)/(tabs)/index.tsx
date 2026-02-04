@@ -117,11 +117,14 @@ const index = () => {
             CE
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity className="px-4 py-2 bg-primary rounded-full">
+        <Link
+          href="/referral"
+          className="px-4 py-2 bg-primary rounded-full active:opacity-80"
+        >
           <Text className="text-center text-lg font-metropolis-semibold text-secondary">
             Earn £500
           </Text>
-        </TouchableOpacity>
+        </Link>
       </View>
 
       {/* Balance Header */}
