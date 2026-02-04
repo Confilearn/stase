@@ -1,7 +1,7 @@
 // API utility for communicating with Express server
 
 const SERVER_URL =
-  process.env.EXPO_PUBLIC_SERVER_URL || "http://10.66.160.11:3000";
+  process.env.EXPO_PUBLIC_SERVER_URL || "http://localhost:3000";
 
 const API_BASE = `${SERVER_URL}/api`;
 
@@ -13,6 +13,7 @@ interface ApiResponse<T = any> {
   user?: any;
   bankAccounts?: any[];
   transactions?: any[];
+  hasTransactionPin?: boolean;
 }
 
 class ApiError extends Error {
@@ -96,16 +97,6 @@ export const api = {
       headers: {
         Authorization: `Bearer ${clerkUserId}`,
       },
-    });
-  },
-
-  async getUserData(clerkUserId: string) {
-    return this.request("/auth/get-user-data", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${clerkUserId}`,
-      },
-      body: JSON.stringify({ clerkUserId }),
     });
   },
 
