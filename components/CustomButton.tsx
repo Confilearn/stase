@@ -1,6 +1,15 @@
 import cn from "clsx";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 
+interface CustomButtonProps {
+  onPress?: () => void;
+  title?: string;
+  style?: string;
+  textStyle?: string;
+  leftIcon?: React.ReactNode;
+  isLoading?: boolean;
+}
+
 const CustomButton = ({
   onPress,
   title = "Click Me",
@@ -8,7 +17,7 @@ const CustomButton = ({
   textStyle,
   leftIcon,
   isLoading = false,
-}: any) => {
+}: CustomButtonProps) => {
   return (
     <TouchableOpacity
       className={cn(

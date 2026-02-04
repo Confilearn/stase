@@ -1,12 +1,38 @@
-import { View, Text } from "react-native";
+import CustomButton from "@/components/CustomButton";
+import { images } from "@/constants";
+import { View, Text, Image, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const card = () => {
   return (
-    <SafeAreaView className="flex-1 bg-bg-light dark:bg-bg-dark p-5 relative">
-      <Text className="font-metropolis-semibold text-2xl text-content-100 dark:text-content-500">
-        Card
-      </Text>
+    <SafeAreaView className="container justify-between align-center">
+      <Image
+        source={images.card}
+        className="size-[300px] mt-4"
+        resizeMode="contain"
+      />
+
+      <View className="flex items-center justify-center gap-5">
+        <Text className="font-metropolis-extrabold text-4xl text-secondary dark:text-white text-center">
+          OUR CARDS AREN’T AVAILABLE
+        </Text>
+        <Text className="text-center font-metropolis-medium text-lg text-content-300">
+          Join our waitlist to be the first to hear when our cards become
+          available.
+        </Text>
+      </View>
+
+      <View className="gap-2 justify-end">
+        <CustomButton
+          title="Join the waitlist"
+          textStyle="text-secondary text-xl"
+        />
+        <CustomButton
+          title="Learn more"
+          style="bg-content-500 border-[0.7px] border-content-400 dark:border-0"
+          textStyle="text-secondary text-xl"
+        />
+      </View>
     </SafeAreaView>
   );
 };
