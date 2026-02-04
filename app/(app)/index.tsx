@@ -10,7 +10,7 @@ import { Alert, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const index = () => {
-  const { user, bankAccounts, updateUserFromAPI } = useUserStore();
+  const { user, updateUserFromAPI } = useUserStore();
   const { getToken } = useAuth();
   const [showPinModal, setShowPinModal] = useState(false);
   const [isCreatingPin, setIsCreatingPin] = useState(false);
@@ -23,32 +23,26 @@ const index = () => {
 
   const checkPinSetup = async () => {
     try {
-      const token = await getToken();
-      if (!token) return;
-
       // Get current user data from local storage
       const localUserData = await localStorage.getUserData();
-      if (!localUserData) return;
+      if (!localUserData || !localUserData.user) return;
 
-      setUserData(localUserData);
-
-      // Check if user has transaction PIN
-      if (!localUserData.user.hasTransactionPin) {
-        // Try to check with server first
-        try {
-          const response = await api.checkTransactionPin(token);
-          if (!response.success) {
-            // User doesn't have PIN, show modal
-            setShowPinModal(true);
-          }
-        } catch (error) {
-          console.error("Error checking PIN status:", error);
-          // If offline, check local data and show modal if needed
-          if (!localUserData.user.hasTransactionPin) {
-            setShowPinModal(true);
-          }
+      // Check if user has PIN by calling the API
+      try {
+        const response = await api.checkTransactionPin(
+          localUserData.user.clerkUserId,
+        );
+        if (response.success && !response.hasTransactionPin) {
+          // User doesn't have PIN, show modal
+          setShowPinModal(true);
         }
+      } catch (error) {
+        console.error("Error checking PIN status:", error);
+        // If API fails, don't show modal
       }
+
+      // User data loaded successfully
+      setUserData(localUserData);
     } catch (error) {
       console.error("Error in checkPinSetup:", error);
     }
@@ -80,12 +74,11 @@ const index = () => {
       if (response.success) {
         console.log("PIN set successfully:", response);
 
-        // Update user data with PIN status
+        // Update user data after PIN creation
         const updatedUserData = {
           ...userData,
           user: {
             ...userData.user,
-            hasTransactionPin: true,
           },
         };
 
@@ -120,14 +113,6 @@ const index = () => {
       <Text className="font-metropolis-semibold text-2xl text-secondary">
         {user?.username}
       </Text>
-
-      {!user?.hasTransactionPin && (
-        <View className="bg-yellow-100 border border-yellow-400 rounded-lg p-3">
-          <Text className="text-yellow-800 text-sm">
-            ⚠️ You need to set up your transaction PIN to perform transactions.
-          </Text>
-        </View>
-      )}
 
       <View className="flex-1" />
 

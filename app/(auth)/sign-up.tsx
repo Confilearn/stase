@@ -107,12 +107,11 @@ const SignUp = () => {
       if (response.success) {
         console.log("PIN set successfully:", response);
 
-        // Update user data with PIN status
+        // Update user data after successful PIN creation
         const updatedUserData = {
           ...createdUserData,
           user: {
             ...createdUserData.user,
-            hasTransactionPin: true,
           },
         };
 
@@ -289,6 +288,7 @@ const SignUp = () => {
     <SafeAreaView className="flex-1 bg-bg-light dark:bg-bg-dark p-4 relative">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
       >
         <View className="flex-row gap-5 my-2 items-center">
           <Link href={"/welcome"}>
@@ -378,13 +378,11 @@ const SignUp = () => {
                 {
                   text: "Skip for Now",
                   onPress: async () => {
-                    // Store incomplete pin setup flag
-                    setPinSetupIncomplete(true);
+                    // Store user data without PIN
                     await localStorage.setUserData({
                       ...createdUserData,
                       user: {
                         ...createdUserData.user,
-                        hasTransactionPin: false,
                       },
                     });
 

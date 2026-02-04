@@ -2,8 +2,9 @@ import { DatabaseProvider } from "@/contexts/DatabaseContext";
 import { useAuthStore } from "@/store/auth.store";
 import { useThemeStore } from "@/store/theme.store";
 import { useUserStore } from "@/store/user.store";
+import { api } from "@/utils/api";
 import { localStorage } from "@/utils/localStorage";
-import { ClerkProvider } from "@clerk/clerk-expo";
+import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
@@ -11,6 +12,49 @@ import { useEffect } from "react";
 import "./global.css";
 import { useColorScheme } from "react-native";
 import { StatusBar } from "expo-status-bar";
+
+// Wrapper component to handle Clerk auth and user data fetching
+function AuthWrapper({ children }: { children: React.ReactNode }) {
+  const { userId, isSignedIn, isLoaded } = useAuth();
+  const { updateUserFromAPI } = useUserStore();
+  const { setIsAuthenticated } = useAuthStore();
+
+  // Fetch user data when user is signed in
+  useEffect(() => {
+    const handleAuth = async () => {
+      if (userId && isSignedIn && isLoaded) {
+        try {
+          const userData = await api.fetchUserDetails(userId);
+
+          if (userData.user) {
+            await updateUserFromAPI({
+              user: userData.user,
+              bankAccounts: userData.bankAccounts || [],
+              transactions: userData.transactions || [],
+            });
+            await localStorage.setUserData({
+              user: userData.user,
+              bankAccounts: userData.bankAccounts || [],
+              transactions: userData.transactions || [],
+            });
+            await localStorage.setAuthToken(userId);
+            setIsAuthenticated(true);
+            await localStorage.setAuthenticated(true);
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
+      } else if (isLoaded && !isSignedIn) {
+        // User is not signed in, ensure authentication state is false
+        setIsAuthenticated(false);
+        await localStorage.setAuthenticated(false);
+      }
+    };
+    handleAuth();
+  }, [userId, isSignedIn, isLoaded, updateUserFromAPI, setIsAuthenticated]);
+
+  return <>{children}</>;
+}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -73,18 +117,20 @@ export default function RootLayout() {
         tokenCache={tokenCache}
         publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY}
       >
-        <StatusBar
-          style={colorScheme === "dark" ? "light" : "dark"}
-          backgroundColor={colorScheme === "dark" ? "#0E0F0C" : "#FFFFFF"}
-        />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Protected guard={isAuthenticated}>
-            <Stack.Screen name="(app)" />
-          </Stack.Protected>
-          <Stack.Protected guard={!isAuthenticated}>
-            <Stack.Screen name="(auth)" />
-          </Stack.Protected>
-        </Stack>
+        <AuthWrapper>
+          <StatusBar
+            style={colorScheme === "dark" ? "light" : "dark"}
+            backgroundColor={colorScheme === "dark" ? "#0E0F0C" : "#FFFFFF"}
+          />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Protected guard={isAuthenticated}>
+              <Stack.Screen name="(app)" />
+            </Stack.Protected>
+            <Stack.Protected guard={!isAuthenticated}>
+              <Stack.Screen name="(auth)" />
+            </Stack.Protected>
+          </Stack>
+        </AuthWrapper>
       </ClerkProvider>
     </DatabaseProvider>
   );

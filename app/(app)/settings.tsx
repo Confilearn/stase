@@ -72,10 +72,10 @@ const Settings = () => {
           </Text>
 
           <View className="bg-surface-light dark:bg-surface-dark rounded-2xl p-6">
-            <Text className="text-lg font-metropolis-semibold text-content-100 dark:text-content-500 mb-2">
+            <Text className="text-xl font-metropolis-semibold text-content-100 dark:text-content-500 mb-2">
               Account
             </Text>
-            <Text className="text-md text-content-300 dark:text-content-400 mb-6">
+            <Text className="text-lg font-metropolis-medium text-content-300 dark:text-content-400 mb-6">
               Manage your account settings and preferences
             </Text>
 

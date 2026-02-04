@@ -22,7 +22,6 @@ interface User {
   email: string;
   clerkUserId: string;
   createdAt: string;
-  hasTransactionPin?: boolean;
 }
 
 interface Transaction {
@@ -189,9 +188,11 @@ export const useUserStore = create<UserState>((set, get) => ({
         return localData.user.hasTransactionPin;
       }
 
+      // PIN functionality has been removed - always return false
       return false;
     } catch (error) {
-      console.error("Error checking transaction PIN status:", error);
+      // PIN functionality has been removed - suppress error logging
+      // console.error("Error checking transaction PIN status:", error);
       return false;
     }
   },
