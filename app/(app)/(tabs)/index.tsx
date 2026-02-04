@@ -3,18 +3,24 @@ import PinModal from "@/components/PinModal";
 import { useUserStore } from "@/store/user.store";
 import { api } from "@/utils/api";
 import { localStorage } from "@/utils/localStorage";
-import { useAuth } from "@clerk/clerk-expo";
 import { Link } from "expo-router";
-import React, { useEffect, useState } from "react";
-import { Alert, Text, View } from "react-native";
+import { ArrowDown2, ArrowRight2, Bank, Clock } from "iconsax-react-native";
+import { useEffect, useState } from "react";
+import {
+  Alert,
+  Text,
+  TouchableOpacity,
+  useColorScheme,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const index = () => {
   const { user, updateUserFromAPI } = useUserStore();
-  const { getToken } = useAuth();
   const [showPinModal, setShowPinModal] = useState(false);
   const [isCreatingPin, setIsCreatingPin] = useState(false);
   const [userData, setUserData] = useState<any>(null);
+  const colorMode = useColorScheme();
 
   // Check if user needs to set up PIN when component mounts
   useEffect(() => {
@@ -103,22 +109,93 @@ const index = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background p-4 gap-5">
-      <Text className="font-metropolis-semibold text-2xl text-secondary">
-        {user?.firstName + " " + user?.lastName}
-      </Text>
-      <Text className="font-metropolis-semibold text-2xl text-secondary">
-        {user?.email}
-      </Text>
-      <Text className="font-metropolis-semibold text-2xl text-secondary">
-        {user?.username}
-      </Text>
+    <SafeAreaView className="container">
+      {/* Header */}
+      <View className="flex-row my-2 items-center justify-between">
+        <TouchableOpacity className="px-3 py-2.5 flex justify-center items-center bg-secondary rounded-full">
+          <Text className="text-center text-lg font-metropolis-semibold text-primary">
+            CE
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity className="px-4 py-2 bg-primary rounded-full">
+          <Text className="text-center text-lg font-metropolis-semibold text-secondary">
+            Earn £500
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-      <View className="flex-1" />
+      {/* Balance Header */}
+      <View className="flex gap-5 mt-14">
+        <TouchableOpacity className="border-gray-300 dark:border-gray-600 border-[0.5px] px-3 py-2 rounded-full max-w-[86px] w-full mx-auto flex-row items-center justify-between">
+          <Text className="text-[13px] font-metropolis-semibold default-text-color">
+            GBP
+          </Text>
+          <ArrowDown2
+            size={20}
+            color={colorMode === "dark" ? "white" : "black"}
+          />
+        </TouchableOpacity>
+        {/* Balance Display */}
+        <View className="mt-6">
+          <Text className="text-center text-7xl font-metropolis-bold text-content-100 dark:text-content-500">
+            £200
+            <Text className="text-3xl font-metropolis-semibold text-content-100 dark:text-content-500">
+              .00
+            </Text>
+          </Text>
+        </View>
+        {/* Account Details Button */}
+        <TouchableOpacity className="bg-primary rounded-full px-4 py-2 max-w-[210px] w-full mx-auto flex-row items-center justify-around gap-2">
+          <Bank size="20" color="#0A385D" variant="Outline" />
+          <Text className="text-center text-secondary font-metropolis-semibold text-lg">
+            Account details
+          </Text>
+          <ArrowRight2 size="20" color="#0A385D" variant="Outline" />
+        </TouchableOpacity>
+      </View>
 
-      <Link href="/(app)/settings" asChild>
-        <CustomButton title="Go to Settings" />
-      </Link>
+      {/* Action Buttons */}
+      <View className="mt-16 flex-row items-center justify-between">
+        <TouchableOpacity className="bg-primary rounded-full px-5 py-3">
+          <Text className="text-center text-secondary font-metropolis-semibold text-[15px]">
+            Send
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity className="bg-secondary rounded-full px-5 py-3">
+          <Text className="text-center text-primary font-metropolis-semibold text-[15px]">
+            Add Money
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity className="bg-secondary rounded-full px-5 py-3">
+          <Text className="text-center text-primary font-metropolis-semibold text-[15px]">
+            Withdraw
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Transactions Section */}
+      <View className="mt-16 flex-row items-center justify-between">
+        <Text className="default-text-color font-metropolis-semibold text-2xl">
+          Transactions
+        </Text>
+        <Link
+          href="/settings"
+          className="default-text-color font-metropolis-semibold text-lg"
+        >
+          View all
+        </Link>
+      </View>
+      {/* Transactions List */}
+      <View className="mt-0 flex-1 items-center justify-center gap-2">
+        <Clock
+          size="75"
+          color={colorMode === "dark" ? "#6A6C6A" : "#454745"}
+          variant="Outline"
+        />
+        <Text className="text-content-200 dark:text-content-300 font-metropolis-semibold text-lg">
+          No transactions yet
+        </Text>
+      </View>
 
       {/* PIN Creation Modal */}
       <PinModal

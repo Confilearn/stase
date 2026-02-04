@@ -1,3 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer utilities {
+  .container {
+    @apply flex-1 bg-bg-light dark:bg-bg-dark p-4 relative;
+  }
+
+  .default-text-color {
+    @apply text-content-100 dark:text-content-500;
+  }
+}
