@@ -93,7 +93,7 @@ const SignIn = () => {
         // Small delay to ensure authentication state is updated
         setTimeout(() => {
           console.log("Redirecting to home");
-          router.replace("/(app)");
+          router.replace("/(app)/(tabs)");
         }, 500);
       }
     } catch (error: any) {

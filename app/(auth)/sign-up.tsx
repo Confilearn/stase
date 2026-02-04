@@ -122,7 +122,7 @@ const SignUp = () => {
 
         setShowPinModal(false);
         Alert.alert("Success", "Account created successfully!");
-        router.replace("/(app)");
+        router.replace("/(app)/(tabs)");
       } else {
         console.error("PIN API error:", response);
         Alert.alert(
@@ -202,7 +202,7 @@ const SignUp = () => {
         } else {
           // User already exists locally, redirect to app
           Alert.alert("Info", "You're already signed in!");
-          router.replace("/(app)");
+          router.replace("/(app)/(tabs)");
           return;
         }
       }
@@ -391,7 +391,7 @@ const SignUp = () => {
                     await localStorage.setAuthenticated(true);
 
                     setShowPinModal(false);
-                    router.replace("/(app)");
+                    router.replace("/(app)/(tabs)");
                   },
                 },
               ],
