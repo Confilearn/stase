@@ -26,7 +26,7 @@ const card = () => {
         <CustomButton title="Join the waitlist" textStyle="text-secondary" />
         <CustomButton
           title="Learn more"
-          style="bg-content-500 border-[0.7px] border-content-400 dark:border-0"
+          style="bg-white border-[0.7px] border-content-400 dark:border-0"
           textStyle="text-secondary"
         />
       </View>

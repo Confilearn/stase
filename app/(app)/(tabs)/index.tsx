@@ -3,7 +3,7 @@ import PinModal from "@/components/PinModal";
 import { useUserStore } from "@/store/user.store";
 import { api } from "@/utils/api";
 import { localStorage } from "@/utils/localStorage";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { ArrowDown2, ArrowRight2, Bank, Clock } from "iconsax-react-native";
 import { useEffect, useState } from "react";
 import {
@@ -112,7 +112,12 @@ const index = () => {
     <SafeAreaView className="container">
       {/* Header */}
       <View className="flex-row my-2 items-center justify-between">
-        <TouchableOpacity className="px-3 py-2.5 flex justify-center items-center bg-secondary rounded-full">
+        <TouchableOpacity
+          className="px-3 py-2.5 flex justify-center items-center bg-secondary rounded-full"
+          onPress={() => {
+            router.push("/(app)/profile");
+          }}
+        >
           <Text className="text-center text-lg font-metropolis-semibold text-primary">
             CE
           </Text>
