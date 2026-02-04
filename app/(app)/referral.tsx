@@ -7,14 +7,14 @@ const card = () => {
   return (
     <SafeAreaView className="container justify-around align-center">
       <Image
-        source={images.card}
+        source={images.gift}
         className="size-[300px] mt-4"
         resizeMode="contain"
       />
 
       <View className="flex items-center justify-center gap-5">
         <Text className="font-metropolis-extrabold text-4xl text-secondary dark:text-white text-center">
-          OUR CARDS AREN’T AVAILABLE
+          FEATURE COMING SOON
         </Text>
         <Text className="text-center font-metropolis-medium text-lg text-content-300">
           Join our waitlist to be the first to hear when this feature becomes
