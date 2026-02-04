@@ -27,7 +27,7 @@ const TabBarIcon = ({ title, focused }: TabBarIconProps) => {
   return (
     <View>
       <IconComponent
-        size="33"
+        size="32"
         fontWeight="900"
         color={focused ? focusedColor : "#6A6C6A"}
       />
