@@ -294,7 +294,7 @@ const SignUp = () => {
           <Link href={"/welcome"}>
             <ChevronLeft />
           </Link>
-          <Text className="text-2xl font-metropolis-semibold text-content-100 dark:text-content-500">
+          <Text className="text-2xl font-metropolis-bold text-content-100 dark:text-content-500">
             Create Account
           </Text>
         </View>
@@ -351,6 +351,7 @@ const SignUp = () => {
             title="Get Started"
             style="mt-8 mb-2"
             onPress={submit}
+            textStyle="text-secondary"
             isLoading={isSubmitting}
           />
         </ScrollView>

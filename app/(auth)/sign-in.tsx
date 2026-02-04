@@ -122,7 +122,7 @@ const SignIn = () => {
             <Link href={"/welcome"}>
               <ChevronLeft />
             </Link>
-            <Text className="text-2xl font-metropolis-semibold text-content-100 dark:text-content-500">
+            <Text className="text-2xl font-metropolis-bold text-content-100 dark:text-content-500">
               Sign In
             </Text>
           </View>
@@ -153,6 +153,7 @@ const SignIn = () => {
           <CustomButton
             title="Log in"
             style="mt-8 mb-2"
+            textStyle="text-secondary"
             onPress={submit}
             isLoading={isSubmitting}
           />
