@@ -15,7 +15,7 @@ import cn from "clsx";
 import ConfirmPinModal from "@/components/ConfirmPinModal";
 import SuccessModal from "@/components/SuccessModal";
 
-const deposit = () => {
+const withdraw = () => {
   const colorMode = useColorScheme();
   const onChangeText = (text: string) => {
     setAmount(text);
@@ -44,7 +44,7 @@ const deposit = () => {
             <ChevronLeft />
           </Link>
           <Text className="text-2xl font-metropolis-bold text-content-100 dark:text-content-500">
-            Add Money
+            Withdraw Money
           </Text>
         </View>
 
@@ -119,10 +119,10 @@ const deposit = () => {
       <SuccessModal
         visible={showSuccessModal}
         onClose={handleClose}
-        message="£50 added to your account"
+        message="£50 sent to your bank account"
       />
     </>
   );
 };
 
-export default deposit;
+export default withdraw;

@@ -184,7 +184,12 @@ const index = () => {
             Add Money
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity className="bg-secondary rounded-full px-5 py-3">
+        <TouchableOpacity
+          className="bg-secondary rounded-full px-5 py-3"
+          onPress={() => {
+            router.push("/(app)/withdraw");
+          }}
+        >
           <Text className="text-center text-primary font-metropolis-semibold text-[15px]">
             Withdraw
           </Text>
