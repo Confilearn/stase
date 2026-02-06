@@ -82,7 +82,7 @@ const withdraw = () => {
           </Text>
         )}
 
-        <View className="h-[0.3px] bg-gray-300 mt-12" />
+        <View className="h-[0.5px] dark:bg-gray-700 bg-gray-300 mt-12" />
 
         {/* Balance info */}
         <View className="flex-row items-center justify-between mt-12">
