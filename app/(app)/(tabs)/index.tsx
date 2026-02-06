@@ -169,7 +169,12 @@ const index = () => {
 
       {/* Action Buttons */}
       <View className="mt-16 flex-row items-center justify-between">
-        <TouchableOpacity className="bg-primary rounded-full px-5 py-3">
+        <TouchableOpacity
+          className="bg-primary rounded-full px-5 py-3"
+          onPress={() => {
+            router.push("/(app)/transfer");
+          }}
+        >
           <Text className="text-center text-secondary font-metropolis-semibold text-[15px]">
             Send
           </Text>
