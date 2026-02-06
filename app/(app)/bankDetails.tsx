@@ -5,13 +5,18 @@ import {
   Add,
   ArrowSwapHorizontal,
   ClipboardText,
+  ClipboardTick,
   MoneyTick,
   Send2,
 } from "iconsax-react-native";
 import { Text, TouchableOpacity, View, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useState, useEffect } from "react";
+import * as Clipboard from "expo-clipboard";
 
 const bankDetails = () => {
+  const [copiedItem, setCopiedItem] = useState<string | null>(null);
+
   const bankDetailsData = [
     { label: "Account Name", value: "John Michael Smith" },
     { label: "Account Number", value: "1234567890" },
@@ -22,10 +27,17 @@ const bankDetails = () => {
     { label: "Swift Code", value: "NWBKGB2L" },
   ];
 
+  const handleCopy = async (value: string, index: string) => {
+    await Clipboard.setStringAsync(value);
+    setCopiedItem(index);
+  };
+
   const renderBankDetailItem = ({
     item,
+    index,
   }: {
     item: (typeof bankDetailsData)[0];
+    index: number;
   }) => (
     <View className="flex-row items-center justify-between mb-6">
       <View className="gap-0.5">
@@ -36,8 +48,14 @@ const bankDetails = () => {
           {item.value}
         </Text>
       </View>
-      <TouchableOpacity>
-        <ClipboardText size="25" color="#6A6C6A" />
+      <TouchableOpacity
+        onPress={() => handleCopy(item.value, index.toString())}
+      >
+        {copiedItem === index.toString() ? (
+          <ClipboardTick size="25" color="#6A6C6A" />
+        ) : (
+          <ClipboardText size="25" color="#6A6C6A" />
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -64,6 +82,15 @@ const bankDetails = () => {
       onPress: () => console.log("Withdraw pressed"),
     },
   ];
+  useEffect(() => {
+    if (copiedItem) {
+      const timer = setTimeout(() => {
+        setCopiedItem(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [copiedItem]);
+
   return (
     <SafeAreaView className="container">
       <View className="flex-row gap-5 mt-2 items-center">
@@ -105,7 +132,7 @@ const bankDetails = () => {
 
       <FlatList
         data={bankDetailsData}
-        renderItem={renderBankDetailItem}
+        renderItem={({ item, index }) => renderBankDetailItem({ item, index })}
         keyExtractor={(item, index) => index.toString()}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
