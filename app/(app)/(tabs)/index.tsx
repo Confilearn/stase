@@ -174,7 +174,12 @@ const index = () => {
             Send
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity className="bg-secondary rounded-full px-5 py-3">
+        <TouchableOpacity
+          className="bg-secondary rounded-full px-5 py-3"
+          onPress={() => {
+            router.push("/(app)/deposit");
+          }}
+        >
           <Text className="text-center text-primary font-metropolis-semibold text-[15px]">
             Add Money
           </Text>
