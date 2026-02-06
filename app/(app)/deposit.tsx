@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import cn from "clsx";
 import ConfirmPinModal from "@/components/ConfirmPinModal";
+import SuccessModal from "@/components/SuccessModal";
 
 const deposit = () => {
   const colorMode = useColorScheme();
@@ -22,11 +23,17 @@ const deposit = () => {
 
   const [amount, setAmount] = useState<string>("");
   const [error, setError] = useState<string>("");
-  const [showPinModal, setShowPinModal] = useState(true);
+  const [showPinModal, setShowPinModal] = useState(false);
   const [isConfirmingPin, setisConfirmingPin] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handlePinSuccess = () => {
     setShowPinModal(false);
+    setShowSuccessModal(true);
+  };
+
+  const handleClose = () => {
+    setShowSuccessModal(false);
   };
 
   return (
@@ -89,17 +96,30 @@ const deposit = () => {
 
         {/* Continue button */}
         <View className="flex-1 justify-end">
-          <CustomButton title="Continue" textStyle="text-secondary" />
+          <CustomButton
+            title="Continue"
+            textStyle="text-secondary"
+            onPress={() => {
+              setShowPinModal(true);
+            }}
+          />
         </View>
       </SafeAreaView>
 
-      {/* PIN Creation Modal */}
+      {/* PIN Confirmation Modal */}
       <ConfirmPinModal
         visible={showPinModal}
         isLoading={isConfirmingPin}
         onClose={() => {}}
         onSuccess={handlePinSuccess}
         title="Confirm your Stase PIN"
+      />
+
+      {/* Success Modal */}
+      <SuccessModal
+        visible={showSuccessModal}
+        onClose={handleClose}
+        message="£50 added to your account"
       />
     </>
   );
