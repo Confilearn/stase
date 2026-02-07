@@ -167,7 +167,7 @@ const index = () => {
         <TouchableOpacity
           className="bg-primary rounded-full px-4 py-2 max-w-[210px] w-full mx-auto flex-row items-center justify-around gap-2"
           onPress={() => {
-            router.push("/(app)/bankDetails");
+            router.push(`/(app)/bankDetails/${selectedCurrency}`);
           }}
         >
           <Bank size="20" color="#0A385D" variant="Outline" />
