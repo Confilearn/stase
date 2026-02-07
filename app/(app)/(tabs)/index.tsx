@@ -31,8 +31,24 @@ const index = () => {
   useEffect(() => {
     checkPinSetup();
 
-    console.log(bankAccounts);
+    console.log(user);
   }, []);
+
+  // Initialize balance and currency from first available account
+  useEffect(() => {
+    if (bankAccounts && bankAccounts.length > 0) {
+      const firstAccount = bankAccounts[0];
+      setSelectedCurrency(firstAccount.accountCurrency);
+      setSelectedSymbol(
+        firstAccount.accountCurrency === "EUR"
+          ? "€"
+          : firstAccount.accountCurrency === "GBP"
+            ? "£"
+            : "$",
+      );
+      setSelectedBalance(firstAccount.balance);
+    }
+  }, [bankAccounts]);
 
   const checkPinSetup = async () => {
     try {
@@ -167,7 +183,7 @@ const index = () => {
         <TouchableOpacity
           className="bg-primary rounded-full px-4 py-2 max-w-[210px] w-full mx-auto flex-row items-center justify-around gap-2"
           onPress={() => {
-            router.push(`/(app)/bankDetails/${selectedCurrency}`);
+            router.push(`/(app)/bankDetails/${selectedCurrency}` as any);
           }}
         >
           <Bank size="20" color="#0A385D" variant="Outline" />

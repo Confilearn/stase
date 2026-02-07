@@ -1,6 +1,6 @@
 import ChevronLeft from "@/components/ChevronLeft";
 import CustomButton from "@/components/CustomButton";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { ArrowDown2 } from "iconsax-react-native";
 import { useState } from "react";
 import {
@@ -14,11 +14,18 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import cn from "clsx";
 import ConfirmPinModal from "@/components/ConfirmPinModal";
 import SuccessModal from "@/components/SuccessModal";
+import CurrencyModal from "@/components/CurrencyModal";
+import { useUserStore } from "@/store/user.store";
+import { api } from "@/utils/api";
 
 const deposit = () => {
   const colorMode = useColorScheme();
+  const router = useRouter();
+  const { user, bankAccounts, updateUserFromAPI } = useUserStore();
+
   const onChangeText = (text: string) => {
     setAmount(text);
+    setError(""); // Clear error when user types
   };
 
   const [amount, setAmount] = useState<string>("");
@@ -26,14 +33,113 @@ const deposit = () => {
   const [showPinModal, setShowPinModal] = useState(false);
   const [isConfirmingPin, setisConfirmingPin] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState(
+    bankAccounts[0] || null,
+  );
 
-  const handlePinSuccess = () => {
-    setShowPinModal(false);
-    setShowSuccessModal(true);
+  // Currency symbols mapping
+  const currencySymbols: Record<string, string> = {
+    EUR: "€",
+    USD: "$",
+    GBP: "£",
+    CAD: "$",
   };
+
+  const handleCurrencySelect = (account: any) => {
+    setSelectedAccount(account);
+  };
+
+  const formatBalance = (balance: number, currency: string) => {
+    const symbol = currencySymbols[currency] || "";
+    return `${symbol}${balance.toLocaleString()}`;
+  };
+
+  const validateAmount = () => {
+    const numAmount = parseFloat(amount);
+    if (!amount || isNaN(numAmount) || numAmount <= 0) {
+      setError("Please enter a valid amount");
+      return false;
+    }
+    if (numAmount > 100000) {
+      setError("Maximum deposit limit is 100,000 per transaction");
+      return false;
+    }
+    return true;
+  };
+
+  const handlePinSuccess = async (pin: string) => {
+    setisConfirmingPin(true);
+
+    try {
+      if (!user || !selectedAccount) {
+        throw new Error("User or account information missing");
+      }
+
+      // Validate PIN with backend first
+      const pinValidation = await api.validateTransactionPin(
+        pin,
+        user.clerkUserId,
+      );
+
+      if (!pinValidation.success) {
+        setError(pinValidation.error || "Invalid PIN. Please try again.");
+        setShowPinModal(false);
+        return;
+      }
+
+      // PIN is valid, proceed with deposit
+      const depositData = {
+        amount: parseFloat(amount),
+        accountCurrency: selectedAccount.accountCurrency,
+        accountNumber: selectedAccount.accountNumber,
+        transactionPin: pin,
+      };
+
+      const response = await api.depositMoney(depositData, user.clerkUserId);
+
+      if (response.success) {
+        const symbol = currencySymbols[selectedAccount.accountCurrency] || "";
+        const successMessage = `${symbol}${parseFloat(amount).toLocaleString()} added to your ${selectedAccount.accountCurrency} account`;
+
+        // Update user store with data from backend response
+        if (response.user && response.bankAccounts && response.transactions) {
+          await updateUserFromAPI({
+            user: response.user,
+            bankAccounts: response.bankAccounts,
+            transactions: response.transactions,
+          });
+        }
+
+        setSuccessMessage(successMessage);
+        setShowPinModal(false);
+        setShowSuccessModal(true);
+        setAmount("");
+        setError("");
+      } else {
+        throw new Error(response.error || "Deposit failed");
+      }
+    } catch (err: any) {
+      console.error("Deposit error:", err);
+      setError(err.message || "Transaction failed. Please try again.");
+      setShowPinModal(false);
+    } finally {
+      setisConfirmingPin(false);
+    }
+  };
+
+  const [successMessage, setSuccessMessage] = useState("");
 
   const handleClose = () => {
     setShowSuccessModal(false);
+    setSuccessMessage("");
+    // Navigate back to home screen
+    router.push("/(app)/(tabs)");
+  };
+
+  const handleContinue = () => {
+    if (!validateAmount()) return;
+    setShowPinModal(true);
   };
 
   return (
@@ -48,17 +154,22 @@ const deposit = () => {
           </Text>
         </View>
 
-        {/* Currency selector and amount */}
+        {/* Currency selector*/}
         <View className="mt-16 relative flex-row items-center gap-2 justify-between">
-          <TouchableOpacity className="border-gray-300 dark:border-gray-600 border-[0.5px] px-3 py-2 rounded-full max-w-[75px] w-full flex-row items-center justify-between">
+          <TouchableOpacity
+            className="border-gray-300 dark:border-gray-600 border-[0.5px] px-3 py-2 rounded-full max-w-[75px] w-full flex-row items-center justify-between"
+            onPress={() => setShowCurrencyModal(true)}
+          >
             <Text className="text-[12px] font-metropolis-semibold default-text-color">
-              GBP
+              {selectedAccount?.accountCurrency || "GBP"}
             </Text>
             <ArrowDown2
               size={20}
               color={colorMode === "dark" ? "white" : "black"}
             />
           </TouchableOpacity>
+
+          {/* Amount */}
           <TextInput
             className={cn(
               "text-5xl font-metropolis-bold",
@@ -90,7 +201,12 @@ const deposit = () => {
             Balance
           </Text>
           <Text className="text-lg font-metropolis-semibold default-text-color">
-            £500.00
+            {selectedAccount
+              ? formatBalance(
+                  selectedAccount.balance,
+                  selectedAccount.accountCurrency,
+                )
+              : "£0.00"}
           </Text>
         </View>
 
@@ -99,9 +215,7 @@ const deposit = () => {
           <CustomButton
             title="Continue"
             textStyle="text-secondary"
-            onPress={() => {
-              setShowPinModal(true);
-            }}
+            onPress={handleContinue}
           />
         </View>
       </SafeAreaView>
@@ -110,7 +224,7 @@ const deposit = () => {
       <ConfirmPinModal
         visible={showPinModal}
         isLoading={isConfirmingPin}
-        onClose={() => {}}
+        onClose={() => setShowPinModal(false)}
         onSuccess={handlePinSuccess}
         title="Confirm your Stase PIN"
       />
@@ -119,7 +233,16 @@ const deposit = () => {
       <SuccessModal
         visible={showSuccessModal}
         onClose={handleClose}
-        message="£50 added to your account"
+        message={successMessage}
+      />
+
+      {/* Currency Modal */}
+      <CurrencyModal
+        visible={showCurrencyModal}
+        onClose={() => setShowCurrencyModal(false)}
+        onCurrencySelect={handleCurrencySelect}
+        selectedCurrency={selectedAccount?.accountCurrency}
+        bankAccounts={bankAccounts}
       />
     </>
   );

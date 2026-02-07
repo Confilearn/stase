@@ -108,6 +108,16 @@ export const api = {
     });
   },
 
+  async validateTransactionPin(pin: string, clerkUserId: string) {
+    return this.request("/auth/validate-transaction-pin", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${clerkUserId}`,
+      },
+      body: JSON.stringify({ pin }),
+    });
+  },
+
   async checkUser(emailOrUsername: string) {
     return this.request("/auth/check-user", {
       method: "POST",
