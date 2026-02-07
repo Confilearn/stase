@@ -24,7 +24,10 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
     const handleAuth = async () => {
       if (userId && isSignedIn && isLoaded) {
         try {
+          console.log("Fetching user data for userId:", userId);
           const userData = await api.fetchUserDetails(userId);
+
+          console.log("User data received:", userData);
 
           if (userData.user) {
             await updateUserFromAPI({
@@ -43,6 +46,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
           }
         } catch (error) {
           console.error("Error fetching user data:", error);
+          // Don't set isAuthenticated to false on API error, let the user stay logged in
         }
       } else if (isLoaded && !isSignedIn) {
         // User is not signed in, ensure authentication state is false

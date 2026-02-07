@@ -46,19 +46,27 @@ export const api = {
     };
 
     try {
+      console.log(`Making API request to: ${url}`);
       const response = await fetch(url, config);
+      console.log(`Response status: ${response.status}`);
+
       const data = await response.json();
+      console.log(`Response data:`, data);
 
       if (!response.ok) {
-        throw new ApiError(response.status, data.error || "Request failed");
+        throw new ApiError(
+          response.status,
+          data.error || `Request failed with status ${response.status}`,
+        );
       }
 
       return data;
     } catch (error) {
+      console.error(`API Error for ${url}:`, error);
       if (error instanceof ApiError) {
         throw error;
       }
-      throw new ApiError(0, "Network error or server unavailable");
+      throw new ApiError(0, `Network error or server unavailable. URL: ${url}`);
     }
   },
 
@@ -158,6 +166,22 @@ export const api = {
         Authorization: `Bearer ${clerkUserId}`,
       },
     });
+  },
+
+  // Test connectivity
+  async testConnection() {
+    try {
+      const response = await fetch(`${API_BASE}/test`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      return response.ok;
+    } catch (error) {
+      console.error("Connection test failed:", error);
+      return false;
+    }
   },
 };
 
