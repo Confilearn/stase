@@ -1,4 +1,5 @@
 import CustomButton from "@/components/CustomButton";
+import CurrencyModal from "@/components/CurrencyModal";
 import PinModal from "@/components/PinModal";
 import { useUserStore } from "@/store/user.store";
 import { api } from "@/utils/api";
@@ -16,15 +17,21 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const index = () => {
-  const { user, updateUserFromAPI } = useUserStore();
+  const { user, bankAccounts, updateUserFromAPI } = useUserStore();
   const [showPinModal, setShowPinModal] = useState(false);
   const [isCreatingPin, setIsCreatingPin] = useState(false);
   const [userData, setUserData] = useState<any>(null);
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState("USD");
+  const [selectedSymbol, setSelectedSymbol] = useState("$");
+  const [selectedBalance, setSelectedBalance] = useState(0);
   const colorMode = useColorScheme();
 
   // Check if user needs to set up PIN when component mounts
   useEffect(() => {
     checkPinSetup();
+
+    console.log(bankAccounts);
   }, []);
 
   const checkPinSetup = async () => {
@@ -132,11 +139,14 @@ const index = () => {
         </Link>
       </View>
 
-      {/* Balance Header */}
+      {/* Balance Pill */}
       <View className="flex gap-5 mt-14">
-        <TouchableOpacity className="border-gray-300 dark:border-gray-600 border-[0.5px] px-3 py-2 rounded-full max-w-[86px] w-full mx-auto flex-row items-center justify-between">
+        <TouchableOpacity
+          className="border-gray-300 dark:border-gray-600 border-[0.5px] px-3 py-2 rounded-full max-w-[86px] w-full mx-auto flex-row items-center justify-between"
+          onPress={() => setShowCurrencyModal(true)}
+        >
           <Text className="text-[13px] font-metropolis-semibold default-text-color">
-            GBP
+            {selectedCurrency}
           </Text>
           <ArrowDown2
             size={20}
@@ -146,7 +156,8 @@ const index = () => {
         {/* Balance Display */}
         <View className="mt-6">
           <Text className="text-center text-7xl font-metropolis-bold text-content-100 dark:text-content-500">
-            £200
+            {selectedSymbol}
+            {selectedBalance.toLocaleString()}
             <Text className="text-3xl font-metropolis-semibold text-content-100 dark:text-content-500">
               .00
             </Text>
@@ -207,7 +218,7 @@ const index = () => {
           Transactions
         </Text>
         <Link
-          href="/settings"
+          href="/(app)/(tabs)/history"
           className="default-text-color font-metropolis-semibold text-lg"
         >
           View all
@@ -220,6 +231,25 @@ const index = () => {
           No transactions yet
         </Text>
       </View>
+
+      {/* Currency Modal */}
+      <CurrencyModal
+        visible={showCurrencyModal}
+        onClose={() => setShowCurrencyModal(false)}
+        onCurrencySelect={(account) => {
+          setSelectedCurrency(account.accountCurrency);
+          setSelectedSymbol(
+            account.accountCurrency === "EUR"
+              ? "€"
+              : account.accountCurrency === "GBP"
+                ? "£"
+                : "$",
+          );
+          setSelectedBalance(account.balance);
+        }}
+        selectedCurrency={selectedCurrency}
+        bankAccounts={bankAccounts}
+      />
 
       {/* PIN Creation Modal */}
       <PinModal
