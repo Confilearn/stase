@@ -1,9 +1,9 @@
 import ChevronLeft from "@/components/ChevronLeft";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { Clock } from "iconsax-react-native";
 import { Check as LucideCheck, X } from "lucide-react-native";
 import { useState, useMemo } from "react";
-import { View, Text, FlatList } from "react-native";
+import { View, Text, FlatList, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface Transaction {
@@ -17,10 +17,10 @@ interface Transaction {
 
 const TransactionItem = ({ item }: { item: Transaction }) => {
   const getIcon = () => {
-    if (item.status === "success") {
-      return <LucideCheck size="20" color="#FFFFFF" />;
+    if (item.status === "error") {
+      return <X size="20" color="#FFFFFF" />;
     }
-    return <X size="20" color="#FFFFFF" />;
+    return <LucideCheck size="20" color="#FFFFFF" />;
   };
 
   const getIconBgColor = () => {
@@ -37,7 +37,10 @@ const TransactionItem = ({ item }: { item: Transaction }) => {
   };
 
   return (
-    <View className="flex-row items-center justify-between w-full">
+    <TouchableOpacity
+      onPress={() => router.push(`/(app)/transactionDetails`)}
+      className="flex-row items-center justify-between w-full"
+    >
       <View className="flex-row gap-3 items-center">
         <View
           className={`flex items-center justify-center size-11 rounded-full ${getIconBgColor()}`}
@@ -59,7 +62,7 @@ const TransactionItem = ({ item }: { item: Transaction }) => {
           {item.amount}
         </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
