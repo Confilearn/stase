@@ -56,7 +56,9 @@ export const api = {
       if (!response.ok) {
         throw new ApiError(
           response.status,
-          data.error || `Request failed with status ${response.status}`,
+          data.error ||
+            data.message ||
+            `Request failed with status ${response.status}`,
         );
       }
 
@@ -118,9 +120,15 @@ export const api = {
     });
   },
 
-  async checkUser(emailOrUsername: string) {
+  async checkUser(emailOrUsername: string, clerkUserId?: string) {
+    const headers: Record<string, string> = {};
+    if (clerkUserId) {
+      headers["Authorization"] = `Bearer ${clerkUserId}`;
+    }
+
     return this.request("/auth/check-user", {
       method: "POST",
+      headers,
       body: JSON.stringify({
         email: emailOrUsername.includes("@") ? emailOrUsername : undefined,
         username: !emailOrUsername.includes("@") ? emailOrUsername : undefined,
