@@ -82,9 +82,7 @@ const ThemeModal: React.FC<ThemeModalProps> = ({
         onPress={onClose}
       >
         <Pressable
-          className={`w-full bg-white rounded-t-[20px] px-5 pt-5 pb-10 ${
-            isDarkMode ? "bg-content-200" : ""
-          }`}
+          className="w-full bg-white dark:bg-content-200 rounded-t-[20px] px-5 pt-5 pb-10"
           onPress={(e) => e.stopPropagation()}
         >
           <View className="h-[3px] bg-gray-300 dark:bg-gray-600 mb-7 max-w-[40px] w-full mx-auto rounded-xl" />
