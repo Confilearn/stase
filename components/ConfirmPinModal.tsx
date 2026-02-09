@@ -40,16 +40,7 @@ const PinModal: React.FC<PinModalProps> = ({
 
       // If PIN is complete, validate
       if (newPin.length === 4) {
-        if (newPin === "1234") {
-          setTimeout(() => {
-            onSuccess(newPin);
-          }, 300);
-        } else {
-          setError("Invalid PIN. Please try again.");
-          setTimeout(() => {
-            setPin("");
-          }, 500);
-        }
+        onSuccess(newPin);
       }
     }
   };
@@ -138,7 +129,7 @@ const PinModal: React.FC<PinModalProps> = ({
           <View className="flex-1 justify-center items-center bg-bg-light dark:bg-bg-dark">
             <ActivityIndicator size="large" className="text-primary" />
             <Text className="mt-4 text-2xl font-metropolis-semibold text-center text-content-100 dark:text-content-500">
-              Setting up your PIN...
+              Verifying your PIN...
             </Text>
           </View>
         ) : (

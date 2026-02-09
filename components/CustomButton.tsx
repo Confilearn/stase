@@ -8,6 +8,7 @@ interface CustomButtonProps {
   textStyle?: string;
   leftIcon?: React.ReactNode;
   isLoading?: boolean;
+  disabled?: boolean;
 }
 
 const CustomButton = ({
@@ -17,14 +18,16 @@ const CustomButton = ({
   textStyle,
   leftIcon,
   isLoading = false,
+  disabled = false,
 }: CustomButtonProps) => {
   return (
     <TouchableOpacity
       className={cn(
-        "p-4 bg-primary rounded-full flex-row items-center justify-center gap-5",
+        "p-4 rounded-full flex-row items-center justify-center gap-5 bg-primary",
         style,
       )}
       onPress={onPress}
+      disabled={disabled || isLoading}
     >
       {leftIcon}
       <View className="flex-center flex-row">

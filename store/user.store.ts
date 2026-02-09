@@ -11,6 +11,7 @@ interface BankAccount {
   swiftCode: string;
   iban?: string;
   sortCode?: string;
+  balance: number;
   createdAt: string;
 }
 
