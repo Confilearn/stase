@@ -2,9 +2,10 @@ import ChevronLeft from "@/components/ChevronLeft";
 import { Link, router } from "expo-router";
 import { Clock } from "iconsax-react-native";
 import { Check as LucideCheck, X } from "lucide-react-native";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { View, Text, FlatList, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useUserStore } from "@/store/user.store";
 
 interface Transaction {
   id: string;
@@ -12,12 +13,27 @@ interface Transaction {
   amount: string;
   currency: string;
   date: string;
-  status: "success" | "error" | "pending";
+  status: "completed" | "failed" | "pending";
 }
 
 const TransactionItem = ({ item }: { item: Transaction }) => {
+  const getCurrencySymbol = (currency: string) => {
+    switch (currency.toUpperCase()) {
+      case "USD":
+        return "$";
+      case "EUR":
+        return "€";
+      case "GBP":
+        return "£";
+      case "CAD":
+        return "c$";
+      default:
+        return currency;
+    }
+  };
+
   const getIcon = () => {
-    if (item.status === "error") {
+    if (item.status === "failed") {
       return <X size="20" color="#FFFFFF" />;
     }
     return <LucideCheck size="20" color="#FFFFFF" />;
@@ -25,20 +41,20 @@ const TransactionItem = ({ item }: { item: Transaction }) => {
 
   const getIconBgColor = () => {
     switch (item.status) {
-      case "success":
+      case "completed":
         return "bg-success";
-      case "error":
+      case "failed":
         return "bg-error";
       case "pending":
         return "bg-warning";
       default:
-        return "bg-content-300";
+        return "bg-gray-300";
     }
   };
 
   return (
     <TouchableOpacity
-      onPress={() => router.push(`/(app)/transactionDetails`)}
+      onPress={() => router.push(`/(app)/transactionDetails/${item.id}` as any)}
       className="flex-row items-center justify-between w-full"
     >
       <View className="flex-row gap-3 items-center">
@@ -58,7 +74,7 @@ const TransactionItem = ({ item }: { item: Transaction }) => {
       </View>
       <View>
         <Text className="font-metropolis-semibold text-[20px] default-text-color">
-          {item.currency}
+          {getCurrencySymbol(item.currency)}
           {item.amount}
         </Text>
       </View>
@@ -67,51 +83,30 @@ const TransactionItem = ({ item }: { item: Transaction }) => {
 };
 
 const history = () => {
-  const transactions = useMemo<Transaction[]>(
-    () => [
-      {
-        id: "1",
-        type: "deposit",
-        amount: "25",
-        currency: "£",
-        date: "Feb 12, 2026",
-        status: "success",
-      },
-      {
-        id: "2",
-        type: "withdraw",
-        amount: "0.5",
-        currency: "£",
-        date: "Feb 11, 2026",
-        status: "error",
-      },
-      {
-        id: "3",
-        type: "convert",
-        amount: "100.1",
-        currency: "$",
-        date: "Feb 11, 2026",
-        status: "pending",
-      },
-      {
-        id: "4",
-        type: "send",
-        amount: "25",
-        currency: "£",
-        date: "Feb 10, 2026",
-        status: "success",
-      },
-      {
-        id: "5",
-        type: "receive",
-        amount: "25",
-        currency: "£",
-        date: "Feb 09, 2026",
-        status: "error",
-      },
-    ],
-    [],
-  );
+  const { transactions, isLoading } = useUserStore();
+
+  const formattedTransactions = useMemo(() => {
+    return transactions.map((transaction) => ({
+      id: transaction.id,
+      type: transaction.transactionType.toLowerCase() as
+        | "deposit"
+        | "withdraw"
+        | "convert"
+        | "send"
+        | "receive",
+      amount: transaction.amount.toString(),
+      currency: transaction.currency,
+      date: new Date(transaction.date).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+      status: transaction.status.toLowerCase() as
+        | "completed"
+        | "failed"
+        | "pending",
+    }));
+  }, [transactions]);
 
   return (
     <SafeAreaView className="container">
@@ -124,7 +119,13 @@ const history = () => {
         </Text>
       </View>
 
-      {transactions.length === 0 ? (
+      {isLoading ? (
+        <View className="flex-1 items-center justify-center">
+          <Text className="text-content-300 font-metropolis-semibold text-xl">
+            Loading transactions...
+          </Text>
+        </View>
+      ) : formattedTransactions.length === 0 ? (
         // No transactions
         <View className="flex-1 items-center justify-center gap-4">
           <Clock size="100" color="#6A6C6A" variant="Outline" />
@@ -135,16 +136,16 @@ const history = () => {
       ) : (
         // Transactions list
         <FlatList
-          data={transactions}
+          data={formattedTransactions}
           renderItem={({ item }) => <TransactionItem item={item} />}
           keyExtractor={(item) => item.id}
-          className="mt-8"
+          className="mt-7"
           contentContainerStyle={{ gap: 32 }}
           showsVerticalScrollIndicator={false}
           removeClippedSubviews={true}
           maxToRenderPerBatch={10}
           windowSize={10}
-          initialNumToRender={5}
+          initialNumToRender={10}
         />
       )}
     </SafeAreaView>

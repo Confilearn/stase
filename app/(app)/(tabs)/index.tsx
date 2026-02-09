@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const index = () => {
-  const { user, bankAccounts, updateUserFromAPI } = useUserStore();
+  const { transactions, bankAccounts, updateUserFromAPI } = useUserStore();
   const [showPinModal, setShowPinModal] = useState(false);
   const [isCreatingPin, setIsCreatingPin] = useState(false);
   const [userData, setUserData] = useState<any>(null);
@@ -31,7 +31,7 @@ const index = () => {
   useEffect(() => {
     checkPinSetup();
 
-    console.log(user);
+    console.log(transactions);
   }, []);
 
   // Initialize balance and currency from first available account
