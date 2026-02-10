@@ -64,7 +64,6 @@ const SignUp = () => {
   const [showPinModal, setShowPinModal] = useState(false);
   const [isCreatingPin, setIsCreatingPin] = useState(false);
   const [createdUserData, setCreatedUserData] = useState<any>(null);
-  const [pinSetupIncomplete, setPinSetupIncomplete] = useState(false);
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -288,7 +287,7 @@ const SignUp = () => {
     <SafeAreaView className="flex-1 bg-bg-light dark:bg-bg-dark p-4 relative">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
+        className="h-full"
       >
         <View className="flex-row gap-5 my-2 items-center">
           <Link href={"/welcome"}>
@@ -300,7 +299,7 @@ const SignUp = () => {
         </View>
 
         <ScrollView
-          className="flex-1"
+          className="h-full"
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
@@ -345,7 +344,7 @@ const SignUp = () => {
             />
           </View>
 
-          <View style={{ flex: 1 }} />
+          <View className="flex-1" />
 
           <CustomButton
             title="Get Started"
