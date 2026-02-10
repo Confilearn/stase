@@ -27,6 +27,7 @@ const Profile = () => {
   const { clearUserData } = useUserStore();
   const { setIsAuthenticated } = useAuthStore();
   const [showThemeModal, setShowThemeModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleThemeSelect = (selectedTheme: "system" | "light" | "dark") => {
     setTheme(selectedTheme);
@@ -45,6 +46,7 @@ const Profile = () => {
           text: "Logout",
           style: "destructive",
           onPress: async () => {
+            setIsLoading(true);
             try {
               console.log("Starting logout process...");
 
@@ -75,6 +77,8 @@ const Profile = () => {
                 "Error",
                 "Failed to logout completely. Please try again.",
               );
+            } finally {
+              setIsLoading(false);
             }
           },
         },
@@ -124,7 +128,8 @@ const Profile = () => {
         <CustomButton
           title="Logout"
           textStyle="text-content-500"
-          style="bg-error"
+          style="bg-red-500"
+          isLoading={isLoading}
           onPress={handleLogout}
         />
       </View>
