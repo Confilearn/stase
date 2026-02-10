@@ -6,9 +6,91 @@ import { api } from "@/utils/api";
 import { localStorage } from "@/utils/localStorage";
 import { Link, router } from "expo-router";
 import { ArrowDown2, ArrowRight2, Bank, Clock } from "iconsax-react-native";
-import { useEffect, useState } from "react";
-import { Text, TouchableOpacity, useColorScheme, View } from "react-native";
+import { Check as LucideCheck, X } from "lucide-react-native";
+import { useEffect, useState, useMemo } from "react";
+import {
+  Text,
+  TouchableOpacity,
+  useColorScheme,
+  View,
+  FlatList,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+interface Transaction {
+  id: string;
+  type: "deposit" | "withdraw" | "convert" | "send" | "receive";
+  amount: string;
+  currency: string;
+  date: string;
+  status: "completed" | "failed" | "pending";
+}
+
+const TransactionItem = ({ item }: { item: Transaction }) => {
+  const getCurrencySymbol = (currency: string) => {
+    switch (currency.toUpperCase()) {
+      case "USD":
+        return "$";
+      case "EUR":
+        return "€";
+      case "GBP":
+        return "£";
+      case "CAD":
+        return "c$";
+      default:
+        return currency;
+    }
+  };
+
+  const getIcon = () => {
+    if (item.status === "failed") {
+      return <X size="20" color="#FFFFFF" />;
+    }
+    return <LucideCheck size="20" color="#FFFFFF" />;
+  };
+
+  const getIconBgColor = () => {
+    switch (item.status) {
+      case "completed":
+        return "bg-success";
+      case "failed":
+        return "bg-error";
+      case "pending":
+        return "bg-warning";
+      default:
+        return "bg-gray-300";
+    }
+  };
+
+  return (
+    <TouchableOpacity
+      onPress={() => router.push(`/(app)/transactionDetails/${item.id}` as any)}
+      className="flex-row items-center justify-between w-full"
+    >
+      <View className="flex-row gap-3 items-center">
+        <View
+          className={`flex items-center justify-center size-11 rounded-full ${getIconBgColor()}`}
+        >
+          {getIcon()}
+        </View>
+        <View className="flex gap-1">
+          <Text className="font-metropolis-semibold text-[17px] default-text-color capitalize">
+            {item.type}
+          </Text>
+          <Text className="font-metropolis-semibold text-[14px] text-content-300">
+            {item.date}
+          </Text>
+        </View>
+      </View>
+      <View>
+        <Text className="font-metropolis-semibold text-[18px] default-text-color">
+          {getCurrencySymbol(item.currency)}
+          {Number(item.amount).toLocaleString()}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 const formatBalance = (balance: number) => {
   const formatted = balance.toLocaleString("en-US", {
@@ -74,6 +156,35 @@ const index = () => {
     }>,
   });
   const colorMode = useColorScheme();
+
+  // Format transactions and get last 3
+  const recentTransactions = useMemo(() => {
+    const formatted = transactions.map((transaction) => ({
+      id: transaction.id,
+      type: transaction.transactionType.toLowerCase() as
+        | "deposit"
+        | "withdraw"
+        | "convert"
+        | "send"
+        | "receive",
+      amount: transaction.amount.toString(),
+      currency: transaction.currency,
+      date: new Date(transaction.date).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+      status: transaction.status.toLowerCase() as
+        | "completed"
+        | "failed"
+        | "pending",
+    }));
+
+    // Sort by date (most recent first) and take last 3
+    return formatted
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 3);
+  }, [transactions]);
 
   // Check if user needs to set up PIN when component mounts
   useEffect(() => {
@@ -205,125 +316,144 @@ const index = () => {
   };
 
   return (
-    <SafeAreaView className="container">
-      {/* Header */}
-      <View className="flex-row my-2 items-center justify-between">
-        <TouchableOpacity
-          className="px-3 py-2.5 flex justify-center items-center bg-secondary rounded-full"
-          onPress={() => {
-            router.push("/(app)/profile");
-          }}
-        >
-          <Text className="text-center text-lg font-metropolis-semibold text-primary">
-            CE
-          </Text>
-        </TouchableOpacity>
-        <Link
-          href="/referral"
-          className="px-4 py-2 bg-primary rounded-full active:opacity-80"
-        >
-          <Text className="text-center text-lg font-metropolis-semibold text-secondary">
-            Earn $50
-          </Text>
-        </Link>
-      </View>
-
-      {/* Balance Pill */}
-      <View className="flex gap-5 mt-14">
-        <TouchableOpacity
-          className="border-gray-300 dark:border-gray-600 border-[0.5px] px-3 py-2 rounded-full max-w-[86px] w-full mx-auto flex-row items-center justify-between"
-          onPress={() => setShowCurrencyModal(true)}
-        >
-          <Text className="text-[13px] font-metropolis-semibold default-text-color">
-            {selectedCurrency}
-          </Text>
-          <ArrowDown2
-            size={20}
-            color={colorMode === "dark" ? "white" : "black"}
-          />
-        </TouchableOpacity>
-        {/* Balance Display */}
-        <View className="mt-6 mb-2">
-          {(() => {
-            const formattedBalance = formatBalance(selectedBalance);
-            return (
-              <Text
-                className={`text-center font-metropolis-bold text-content-100 dark:text-content-500 ${formattedBalance.fontSizeClass}`}
-              >
-                {selectedSymbol}
-                {formattedBalance.text}
-              </Text>
-            );
-          })()}
+    <>
+      <SafeAreaView className="container">
+        {/* Header */}
+        <View className="flex-row my-2 items-center justify-between">
+          <TouchableOpacity
+            className="px-3 py-2.5 flex justify-center items-center bg-secondary rounded-full"
+            onPress={() => {
+              router.push("/(app)/profile");
+            }}
+          >
+            <Text className="text-center text-lg font-metropolis-semibold text-primary">
+              CE
+            </Text>
+          </TouchableOpacity>
+          <Link
+            href="/referral"
+            className="px-4 py-2 bg-primary rounded-full active:opacity-80"
+          >
+            <Text className="text-center text-lg font-metropolis-semibold text-secondary">
+              Earn $50
+            </Text>
+          </Link>
         </View>
-        {/* Account Details Button */}
-        <TouchableOpacity
-          className="bg-primary rounded-full px-4 py-2 max-w-[210px] w-full mx-auto flex-row items-center justify-around gap-2"
-          onPress={() => {
-            router.push(`/(app)/bankDetails/${selectedCurrency}` as any);
-          }}
-        >
-          <Bank size="20" color="#0A385D" variant="Outline" />
-          <Text className="text-center text-secondary font-metropolis-semibold text-lg">
-            Account details
-          </Text>
-          <ArrowRight2 size="20" color="#0A385D" variant="Outline" />
-        </TouchableOpacity>
-      </View>
 
-      {/* Action Buttons */}
-      <View className="mt-16 flex-row items-center justify-between">
-        <TouchableOpacity
-          className="bg-primary rounded-full px-5 py-3"
-          onPress={() => {
-            router.push("/(app)/transfer");
-          }}
-        >
-          <Text className="text-center text-secondary font-metropolis-semibold text-[15px]">
-            Send
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          className="bg-secondary rounded-full px-5 py-3"
-          onPress={() => {
-            router.push("/(app)/deposit");
-          }}
-        >
-          <Text className="text-center text-primary font-metropolis-semibold text-[15px]">
-            Add Money
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          className="bg-secondary rounded-full px-5 py-3"
-          onPress={() => {
-            router.push("/(app)/withdraw");
-          }}
-        >
-          <Text className="text-center text-primary font-metropolis-semibold text-[15px]">
-            Withdraw
-          </Text>
-        </TouchableOpacity>
-      </View>
+        {/* Balance Pill */}
+        <View className="flex gap-5 mt-14">
+          <TouchableOpacity
+            className="border-gray-300 dark:border-gray-600 border-[0.5px] px-3 py-2 rounded-full max-w-[86px] w-full mx-auto flex-row items-center justify-between"
+            onPress={() => setShowCurrencyModal(true)}
+          >
+            <Text className="text-[13px] font-metropolis-semibold default-text-color">
+              {selectedCurrency}
+            </Text>
+            <ArrowDown2
+              size={20}
+              color={colorMode === "dark" ? "white" : "black"}
+            />
+          </TouchableOpacity>
+          {/* Balance Display */}
+          <View className="mt-6 mb-2">
+            {(() => {
+              const formattedBalance = formatBalance(selectedBalance);
+              return (
+                <Text
+                  className={`text-center font-metropolis-bold text-content-100 dark:text-content-500 ${formattedBalance.fontSizeClass}`}
+                >
+                  {selectedSymbol}
+                  {formattedBalance.text}
+                </Text>
+              );
+            })()}
+          </View>
+          {/* Account Details Button */}
+          <TouchableOpacity
+            className="bg-primary rounded-full px-4 py-2 max-w-[210px] w-full mx-auto flex-row items-center justify-around gap-2"
+            onPress={() => {
+              router.push(`/(app)/bankDetails/${selectedCurrency}` as any);
+            }}
+          >
+            <Bank size="20" color="#0A385D" variant="Outline" />
+            <Text className="text-center text-secondary font-metropolis-semibold text-lg">
+              Account details
+            </Text>
+            <ArrowRight2 size="20" color="#0A385D" variant="Outline" />
+          </TouchableOpacity>
+        </View>
 
-      {/* Transactions Section */}
-      <View className="mt-16 flex-row items-center justify-between">
-        <Text className="default-text-color font-metropolis-semibold text-2xl">
-          Transactions
-        </Text>
-        <Link
-          href="/(app)/(tabs)/history"
-          className="default-text-color font-metropolis-semibold text-lg"
-        >
-          View all
-        </Link>
-      </View>
-      {/* Transactions List */}
-      <View className="flex-1 items-center justify-center gap-2">
-        <Clock size="75" color="#6A6C6A" variant="Outline" />
-        <Text className="text-content-300 font-metropolis-semibold text-lg">
-          No transactions yet
-        </Text>
-      </View>
+        {/* Action Buttons */}
+        <View className="mt-16 flex-row items-center justify-between">
+          <TouchableOpacity
+            className="bg-primary rounded-full px-5 py-3"
+            onPress={() => {
+              router.push("/(app)/transfer");
+            }}
+          >
+            <Text className="text-center text-secondary font-metropolis-semibold text-[15px]">
+              Send
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="bg-secondary rounded-full px-5 py-3"
+            onPress={() => {
+              router.push("/(app)/deposit");
+            }}
+          >
+            <Text className="text-center text-primary font-metropolis-semibold text-[15px]">
+              Add Money
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="bg-secondary rounded-full px-5 py-3"
+            onPress={() => {
+              router.push("/(app)/withdraw");
+            }}
+          >
+            <Text className="text-center text-primary font-metropolis-semibold text-[15px]">
+              Withdraw
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Transactions Section */}
+        <View className="flex-1">
+          {/* Transaction Header */}
+          <View className="mt-16 mb-3 flex-row items-center justify-between">
+            <Text className="default-text-color font-metropolis-semibold text-2xl">
+              Transactions
+            </Text>
+            <Link
+              href="/(app)/(tabs)/history"
+              className="default-text-color font-metropolis-semibold text-lg"
+            >
+              View all
+            </Link>
+          </View>
+          {/* Transactions List */}
+          {recentTransactions.length === 0 ? (
+            <View className="flex-1 items-center justify-center gap-2">
+              <Clock size="75" color="#6A6C6A" variant="Outline" />
+              <Text className="text-content-300 font-metropolis-semibold text-lg">
+                No transactions yet
+              </Text>
+            </View>
+          ) : (
+            <View className="flex-1">
+              <FlatList
+                data={recentTransactions}
+                renderItem={({ item }) => <TransactionItem item={item} />}
+                keyExtractor={(item) => item.id}
+                className="mt-4"
+                contentContainerStyle={{ gap: 20 }}
+                showsVerticalScrollIndicator={false}
+                scrollEnabled={false}
+              />
+            </View>
+          )}
+        </View>
+      </SafeAreaView>
 
       {/* Currency Modal */}
       <CurrencyModal
@@ -384,7 +514,7 @@ const index = () => {
         buttons={alertConfig.buttons}
         onClose={() => setShowAlertModal(false)}
       />
-    </SafeAreaView>
+    </>
   );
 };
 
