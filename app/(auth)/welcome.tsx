@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const Welcome = () => {
   return (
-    <SafeAreaView className="flex-1 justify-around bg-bg-light gap-8 dark:bg-bg-dark items-center p-4">
+    <SafeAreaView className="flex-1 justify-between bg-bg-light dark:bg-bg-dark items-center p-4">
       <Image
         source={images.wallet}
         className="size-[300px] mt-4"
@@ -17,7 +17,7 @@ const Welcome = () => {
         SEND MONEY AND GET PAID WITH EASE
       </Text>
 
-      <View className="w-full flex items-center justify-center gap-2 py-2">
+      <View className="w-full flex items-center justify-center gap-3 pt-10 pb-2">
         <CustomButton
           title="Log in"
           style="w-full"
