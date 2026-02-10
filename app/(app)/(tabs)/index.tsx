@@ -1,4 +1,3 @@
-import CustomButton from "@/components/CustomButton";
 import CurrencyModal from "@/components/CurrencyModal";
 import PinModal from "@/components/PinModal";
 import { useUserStore } from "@/store/user.store";
@@ -150,7 +149,7 @@ const index = () => {
           className="px-4 py-2 bg-primary rounded-full active:opacity-80"
         >
           <Text className="text-center text-lg font-metropolis-semibold text-secondary">
-            Earn £500
+            Earn $50
           </Text>
         </Link>
       </View>

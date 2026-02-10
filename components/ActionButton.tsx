@@ -18,7 +18,7 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
     >
       {icon}
     </TouchableOpacity>
-    <Text className="font-metropolis-semibold text-[15px] default-text-color">
+    <Text className="font-metropolis-medium text-[14px] default-text-color">
       {label}
     </Text>
   </View>

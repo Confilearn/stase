@@ -88,11 +88,11 @@ const BankDetailsPage = () => {
     index: number;
   }) => (
     <View className="flex-row items-center justify-between mb-6">
-      <View className="gap-0.5">
-        <Text className="text-content-300 font-metropolis-semibold text-[16px]">
+      <View className="gap-1">
+        <Text className="text-content-300 font-metropolis-semibold text-[14px]">
           {item.label}
         </Text>
-        <Text className="text-content-200 dark:text-content-400 font-metropolis-semibold text-lg">
+        <Text className="text-content-200 dark:text-content-400 font-metropolis-semibold text-[16px]">
           {item.value}
         </Text>
       </View>
@@ -110,22 +110,22 @@ const BankDetailsPage = () => {
 
   const actions = [
     {
-      icon: <Add size="26" color="#0A385D" variant="Outline" />,
+      icon: <Add size="24" color="#0A385D" variant="Outline" />,
       label: "Add",
       onPress: () => router.push("/(app)/deposit"),
     },
     {
-      icon: <ArrowSwapHorizontal size="26" color="#0A385D" variant="Outline" />,
+      icon: <ArrowSwapHorizontal size="24" color="#0A385D" variant="Outline" />,
       label: "Convert",
       onPress: () => router.push("/(app)/(tabs)/convert"),
     },
     {
-      icon: <Send2 size="26" color="#0A385D" variant="Outline" />,
+      icon: <Send2 size="24" color="#0A385D" variant="Outline" />,
       label: "Send",
       onPress: () => router.push("/(app)/transfer"),
     },
     {
-      icon: <MoneyTick size="26" color="#0A385D" variant="Outline" />,
+      icon: <MoneyTick size="24" color="#0A385D" variant="Outline" />,
       label: "Withdraw",
       onPress: () => router.push("/(app)/withdraw"),
     },
@@ -162,7 +162,14 @@ const BankDetailsPage = () => {
 
       {/* Balance Section */}
       <View className="mt-8 gap-1.5">
-        <View className="size-24 bg-blue-400 rounded-full"></View>
+        <View className="size-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+          <Text className="text-5xl">
+            {accountCurrency === "USD" && "🇺🇸"}
+            {accountCurrency === "EUR" && "🇪🇺"}
+            {accountCurrency === "GBP" && "🇬🇧"}
+            {accountCurrency === "CAD" && "🇨🇦"}
+          </Text>
+        </View>
 
         <Text className="font-metropolis-semibold text-xl text-content-200 dark:text-content-400 mt-4">
           {accountCurrency} Balance
@@ -187,7 +194,7 @@ const BankDetailsPage = () => {
       </View>
 
       {/* Details List Group */}
-      <View className="mt-10 mb-7">
+      <View className="mt-2 mb-7">
         <Text className="font-metropolis-bold text-2xl default-text-color">
           Account Details
         </Text>
