@@ -17,6 +17,7 @@ import SuccessModal from "@/components/SuccessModal";
 import CurrencyModal from "@/components/CurrencyModal";
 import { useUserStore } from "@/store/user.store";
 import { api } from "@/utils/api";
+import { checkAndNavigateToOffline } from "@/utils/offlineDetection";
 
 const convert = () => {
   const colorMode = useColorScheme();
@@ -86,6 +87,13 @@ const convert = () => {
 
   const checkUser = async (emailOrUsername: string, clerkUserId?: string) => {
     if (!emailOrUsername.trim() || !clerkUserId) return;
+
+    // Check network connectivity before making API calls
+    const isOfflineMode = await checkAndNavigateToOffline(router);
+    if (isOfflineMode) {
+      setIsCheckingUser(false);
+      return;
+    }
 
     setIsCheckingUser(true);
     try {
@@ -164,6 +172,13 @@ const convert = () => {
     setisConfirmingPin(true);
 
     try {
+      // Check network connectivity before making API calls
+      const isOfflineMode = await checkAndNavigateToOffline(router);
+      if (isOfflineMode) {
+        setisConfirmingPin(false);
+        return;
+      }
+
       if (!user || !verifiedUser) {
         throw new Error("User information missing");
       }

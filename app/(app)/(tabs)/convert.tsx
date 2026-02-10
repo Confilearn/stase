@@ -23,6 +23,7 @@ import {
   SUPPORTED_CURRENCIES,
   SupportedCurrency,
 } from "@/utils/currencyRates";
+import { checkAndNavigateToOffline } from "@/utils/offlineDetection";
 
 const convert = () => {
   const colorMode = useColorScheme();
@@ -178,6 +179,13 @@ const convert = () => {
     setisConfirmingPin(true);
 
     try {
+      // Check network connectivity before making API calls
+      const isOfflineMode = await checkAndNavigateToOffline(router);
+      if (isOfflineMode) {
+        setisConfirmingPin(false);
+        return;
+      }
+
       if (!user || !fromCurrencyAccount || !toCurrencyAccount) {
         throw new Error("Missing account information");
       }

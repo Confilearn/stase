@@ -17,6 +17,7 @@ import SuccessModal from "@/components/SuccessModal";
 import CurrencyModal from "@/components/CurrencyModal";
 import { useUserStore } from "@/store/user.store";
 import { api } from "@/utils/api";
+import { checkAndNavigateToOffline } from "@/utils/offlineDetection";
 
 const withdraw = () => {
   const colorMode = useColorScheme();
@@ -81,6 +82,13 @@ const withdraw = () => {
     setisConfirmingPin(true);
 
     try {
+      // Check network connectivity before making API calls
+      const isOfflineMode = await checkAndNavigateToOffline(router);
+      if (isOfflineMode) {
+        setisConfirmingPin(false);
+        return;
+      }
+
       if (!user || !selectedAccount) {
         throw new Error("User or account information missing");
       }
