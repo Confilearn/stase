@@ -15,6 +15,50 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+const formatBalance = (balance: number) => {
+  const formatted = balance.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  const parts = formatted.split(".");
+  const integerPart = parts[0];
+  const decimalPart = parts[1];
+
+  // Calculate total length without decimal point for font sizing
+  const totalLength =
+    integerPart.replace(/,/g, "").length +
+    (decimalPart ? decimalPart.length : 0);
+
+  let fontSizeClass = "text-7xl";
+  if (totalLength < 6) {
+    fontSizeClass = "text-7xl";
+  } else if (totalLength < 8) {
+    fontSizeClass = "text-6xl";
+  } else {
+    fontSizeClass = "text-5xl";
+  }
+
+  if (decimalPart) {
+    return {
+      text: (
+        <>
+          {integerPart}
+          <Text className="text-3xl font-metropolis-semibold text-content-100 dark:text-content-500">
+            .{decimalPart}
+          </Text>
+        </>
+      ),
+      fontSizeClass,
+    };
+  }
+
+  return {
+    text: integerPart,
+    fontSizeClass,
+  };
+};
+
 const index = () => {
   const { transactions, bankAccounts, updateUserFromAPI } = useUserStore();
   const [showPinModal, setShowPinModal] = useState(false);
@@ -29,8 +73,6 @@ const index = () => {
   // Check if user needs to set up PIN when component mounts
   useEffect(() => {
     checkPinSetup();
-
-    console.log(transactions);
   }, []);
 
   // Initialize balance and currency from first available account
@@ -169,14 +211,18 @@ const index = () => {
           />
         </TouchableOpacity>
         {/* Balance Display */}
-        <View className="mt-6">
-          <Text className="text-center text-7xl font-metropolis-bold text-content-100 dark:text-content-500">
-            {selectedSymbol}
-            {selectedBalance.toLocaleString()}
-            <Text className="text-3xl font-metropolis-semibold text-content-100 dark:text-content-500">
-              .00
-            </Text>
-          </Text>
+        <View className="mt-6 mb-2">
+          {(() => {
+            const formattedBalance = formatBalance(selectedBalance);
+            return (
+              <Text
+                className={`text-center font-metropolis-bold text-content-100 dark:text-content-500 ${formattedBalance.fontSizeClass}`}
+              >
+                {selectedSymbol}
+                {formattedBalance.text}
+              </Text>
+            );
+          })()}
         </View>
         {/* Account Details Button */}
         <TouchableOpacity

@@ -15,6 +15,28 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import * as Clipboard from "expo-clipboard";
 
+const formatBalance = (balance: number) => {
+  const formatted = balance.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  const parts = formatted.split(".");
+  const integerPart = parts[0];
+  const decimalPart = parts[1];
+
+  if (decimalPart) {
+    return (
+      <>
+        {integerPart}
+        <Text className="text-3xl">.{decimalPart}</Text>
+      </>
+    );
+  }
+
+  return integerPart;
+};
+
 const BankDetailsPage = () => {
   const { accountCurrency } = useLocalSearchParams<{
     accountCurrency: string;
@@ -176,8 +198,7 @@ const BankDetailsPage = () => {
         </Text>
         <Text className="font-metropolis-semibold text-5xl default-text-color">
           {getCurrencySymbol(accountCurrency)}
-          {accountDetails.balance.toLocaleString()}
-          <Text className="text-3xl">.00</Text>
+          {formatBalance(accountDetails.balance)}
         </Text>
       </View>
 

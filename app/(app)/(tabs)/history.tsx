@@ -75,7 +75,7 @@ const TransactionItem = ({ item }: { item: Transaction }) => {
       <View>
         <Text className="font-metropolis-semibold text-[20px] default-text-color">
           {getCurrencySymbol(item.currency)}
-          {item.amount}
+          {Number(item.amount).toLocaleString()}
         </Text>
       </View>
     </TouchableOpacity>
