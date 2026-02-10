@@ -1,5 +1,6 @@
 import ChevronLeft from "@/components/ChevronLeft";
 import ThemeModal from "@/components/ThemeModal";
+import CustomAlertModal from "@/components/CustomAlertModal";
 import { Link, useRouter } from "expo-router";
 import { Moon, Sun1 } from "iconsax-react-native";
 import CustomButton from "@/components/CustomButton";
@@ -7,13 +8,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
 import { localStorage } from "@/utils/localStorage";
 import { useAuth } from "@clerk/clerk-expo";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  useColorScheme,
-  Alert,
-} from "react-native";
+import { View, Text, TouchableOpacity, useColorScheme } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useThemeStore } from "@/store/theme.store";
 import { useState } from "react";
@@ -27,24 +22,38 @@ const Profile = () => {
   const { clearUserData } = useUserStore();
   const { setIsAuthenticated } = useAuthStore();
   const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    title: "",
+    message: "",
+    buttons: [] as Array<{
+      text?: string;
+      style?: "default" | "cancel" | "destructive";
+      onPress: () => void;
+    }>,
+  });
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleThemeSelect = (selectedTheme: "system" | "light" | "dark") => {
     setTheme(selectedTheme);
   };
 
-  const handleLogout = async () => {
-    Alert.alert(
-      "Confirm Logout",
-      "Are you sure you want to logout? This will clear all your local data.",
-      [
+  const handleLogout = () => {
+    setAlertConfig({
+      title: "Confirm Logout",
+      message:
+        "Are you sure you want to logout? This will clear all your local data.",
+      buttons: [
         {
           text: "Cancel",
           style: "cancel",
+          onPress: () => {},
         },
         {
           text: "Logout",
           style: "destructive",
           onPress: async () => {
+            setIsLoading(true);
             try {
               console.log("Starting logout process...");
 
@@ -68,18 +77,44 @@ const Profile = () => {
               router.replace("/(auth)/welcome");
               console.log("Navigated to auth screens");
 
-              Alert.alert("Success", "You have been logged out successfully.");
+              // Show success alert
+              setTimeout(() => {
+                setAlertConfig({
+                  title: "Success",
+                  message: "You have been logged out successfully.",
+                  buttons: [
+                    {
+                      text: "OK",
+                      style: "default",
+                      onPress: () => {},
+                    },
+                  ],
+                });
+                setShowAlertModal(true);
+              }, 500);
             } catch (error) {
               console.error("Logout error:", error);
-              Alert.alert(
-                "Error",
-                "Failed to logout completely. Please try again.",
-              );
+              // Show error alert
+              setAlertConfig({
+                title: "Error",
+                message: "Failed to logout completely. Please try again.",
+                buttons: [
+                  {
+                    text: "OK",
+                    style: "default",
+                    onPress: () => {},
+                  },
+                ],
+              });
+              setShowAlertModal(true);
+            } finally {
+              setIsLoading(false);
             }
           },
         },
       ],
-    );
+    });
+    setShowAlertModal(true);
   };
 
   return (
@@ -124,7 +159,8 @@ const Profile = () => {
         <CustomButton
           title="Logout"
           textStyle="text-content-500"
-          style="bg-error"
+          style="bg-red-500"
+          isLoading={isLoading}
           onPress={handleLogout}
         />
       </View>
@@ -135,6 +171,15 @@ const Profile = () => {
         onClose={() => setShowThemeModal(false)}
         currentTheme={theme}
         onThemeSelect={handleThemeSelect}
+      />
+
+      {/* Custom Alert Modal */}
+      <CustomAlertModal
+        visible={showAlertModal}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setShowAlertModal(false)}
       />
     </SafeAreaView>
   );

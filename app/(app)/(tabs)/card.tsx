@@ -8,7 +8,7 @@ const card = () => {
     <SafeAreaView className="container justify-around align-center">
       <Image
         source={images.card}
-        className="size-[300px] mt-4"
+        className="size-[300px] mx-auto mt-4"
         resizeMode="contain"
       />
 
