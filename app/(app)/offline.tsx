@@ -17,7 +17,7 @@ const Offline = () => {
       <View className="gap-20">
         <Image
           source={images.wifi}
-          className="size-[300px] mt-4"
+          className="size-[300px] mx-auto mt-4"
           resizeMode="contain"
         />
         <View className="flex items-center justify-center gap-5">

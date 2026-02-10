@@ -9,7 +9,7 @@ const Welcome = () => {
     <SafeAreaView className="flex-1 justify-between bg-bg-light dark:bg-bg-dark items-center p-4">
       <Image
         source={images.wallet}
-        className="size-[300px] mt-4"
+        className="size-[300px] mx-auto mt-4"
         resizeMode="contain"
       />
 
