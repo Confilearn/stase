@@ -64,7 +64,7 @@ const TransactionItem = ({ item }: { item: Transaction }) => {
           {getIcon()}
         </View>
         <View className="flex gap-1">
-          <Text className="font-metropolis-semibold text-[18px] default-text-color capitalize">
+          <Text className="font-metropolis-semibold text-[17px] default-text-color capitalize">
             {item.type}
           </Text>
           <Text className="font-metropolis-semibold text-[14px] text-content-300">
@@ -73,7 +73,7 @@ const TransactionItem = ({ item }: { item: Transaction }) => {
         </View>
       </View>
       <View>
-        <Text className="font-metropolis-semibold text-[20px] default-text-color">
+        <Text className="font-metropolis-semibold text-[18px] default-text-color">
           {getCurrencySymbol(item.currency)}
           {Number(item.amount).toLocaleString()}
         </Text>
