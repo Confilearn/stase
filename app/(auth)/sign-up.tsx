@@ -2,6 +2,7 @@ import ChevronLeft from "@/components/ChevronLeft";
 import CustomButton from "@/components/CustomButton";
 import CustomInput from "@/components/CustomInput";
 import PinModal from "@/components/PinModal";
+import CustomAlertModal from "@/components/CustomAlertModal";
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
 import { api } from "@/utils/api";
@@ -10,7 +11,6 @@ import { useAuth, useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -64,6 +64,16 @@ const SignUp = () => {
   const [showPinModal, setShowPinModal] = useState(false);
   const [isCreatingPin, setIsCreatingPin] = useState(false);
   const [createdUserData, setCreatedUserData] = useState<any>(null);
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    title: "",
+    message: "",
+    buttons: [] as Array<{
+      text?: string;
+      style?: "default" | "cancel" | "destructive";
+      onPress: () => void;
+    }>,
+  });
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -84,10 +94,18 @@ const SignUp = () => {
     setIsCreatingPin(true);
     try {
       if (!createdUserData || !createdUserData.user.clerkUserId) {
-        Alert.alert(
-          "Error",
-          "User data not found. Please try signing up again.",
-        );
+        setAlertConfig({
+          title: "Error",
+          message: "User data not found. Please try signing up again.",
+          buttons: [
+            {
+              text: "OK",
+              style: "default",
+              onPress: () => {},
+            },
+          ],
+        });
+        setShowAlertModal(true);
         setShowPinModal(false);
         return;
       }
@@ -120,21 +138,51 @@ const SignUp = () => {
         await localStorage.setAuthenticated(true);
 
         setShowPinModal(false);
-        Alert.alert("Success", "Account created successfully!");
-        router.replace("/(app)/(tabs)");
+        setAlertConfig({
+          title: "Success",
+          message: "Account created successfully!",
+          buttons: [
+            {
+              text: "OK",
+              style: "default",
+              onPress: () => {},
+            },
+          ],
+        });
+        setShowAlertModal(true);
+        setTimeout(() => {
+          router.replace("/(app)/(tabs)");
+        }, 1000);
       } else {
         console.error("PIN API error:", response);
-        Alert.alert(
-          "Error",
-          response.error || "Failed to set PIN. Please try again.",
-        );
+        setAlertConfig({
+          title: "Error",
+          message: response.error || "Failed to set PIN. Please try again.",
+          buttons: [
+            {
+              text: "OK",
+              style: "default",
+              onPress: () => {},
+            },
+          ],
+        });
+        setShowAlertModal(true);
       }
     } catch (error: any) {
       console.error("Error setting PIN:", error);
-      Alert.alert(
-        "Connection Error",
-        "Unable to connect to server. Please check your connection and try again.",
-      );
+      setAlertConfig({
+        title: "Connection Error",
+        message:
+          "Unable to connect to server. Please check your connection and try again.",
+        buttons: [
+          {
+            text: "OK",
+            style: "default",
+            onPress: () => {},
+          },
+        ],
+      });
+      setShowAlertModal(true);
     } finally {
       setIsCreatingPin(false);
     }
@@ -200,8 +248,21 @@ const SignUp = () => {
           }
         } else {
           // User already exists locally, redirect to app
-          Alert.alert("Info", "You're already signed in!");
-          router.replace("/(app)/(tabs)");
+          setAlertConfig({
+            title: "Info",
+            message: "You're already signed in!",
+            buttons: [
+              {
+                text: "OK",
+                style: "default",
+                onPress: () => {},
+              },
+            ],
+          });
+          setShowAlertModal(true);
+          setTimeout(() => {
+            router.replace("/(app)/(tabs)");
+          }, 1000);
           return;
         }
       }
@@ -272,11 +333,44 @@ const SignUp = () => {
 
       // Handle different error types
       if (error.response?.data?.error) {
-        Alert.alert("Error", error.response.data.error);
+        setAlertConfig({
+          title: "Error",
+          message: error.response.data.error,
+          buttons: [
+            {
+              text: "OK",
+              style: "default",
+              onPress: () => {},
+            },
+          ],
+        });
+        setShowAlertModal(true);
       } else if (error.errors?.[0]?.message) {
-        Alert.alert("Error", error.errors[0].message);
+        setAlertConfig({
+          title: "Error",
+          message: error.errors[0].message,
+          buttons: [
+            {
+              text: "OK",
+              style: "default",
+              onPress: () => {},
+            },
+          ],
+        });
+        setShowAlertModal(true);
       } else {
-        Alert.alert("Error", "An unexpected error occurred during sign up.");
+        setAlertConfig({
+          title: "Error",
+          message: "An unexpected error occurred during sign up.",
+          buttons: [
+            {
+              text: "OK",
+              style: "default",
+              onPress: () => {},
+            },
+          ],
+        });
+        setShowAlertModal(true);
       }
     } finally {
       setIsSubmitting(false);
@@ -363,10 +457,11 @@ const SignUp = () => {
         onClose={() => {
           console.log("PIN modal onClose called");
           if (createdUserData) {
-            Alert.alert(
-              "PIN Required",
-              "A transaction PIN is required to use the app. Do you want to complete PIN setup now?",
-              [
+            setAlertConfig({
+              title: "PIN Required",
+              message:
+                "A transaction PIN is required to use the app. Do you want to complete PIN setup now?",
+              buttons: [
                 {
                   text: "Complete PIN Setup",
                   style: "cancel",
@@ -394,13 +489,23 @@ const SignUp = () => {
                   },
                 },
               ],
-            );
+            });
+            setShowAlertModal(true);
           } else {
             setShowPinModal(false);
           }
         }}
         onSuccess={handlePinSuccess}
         title="Create your Stase PIN"
+      />
+
+      {/* Custom Alert Modal */}
+      <CustomAlertModal
+        visible={showAlertModal}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setShowAlertModal(false)}
       />
     </SafeAreaView>
   );

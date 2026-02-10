@@ -1,18 +1,13 @@
 import CurrencyModal from "@/components/CurrencyModal";
 import PinModal from "@/components/PinModal";
+import CustomAlertModal from "@/components/CustomAlertModal";
 import { useUserStore } from "@/store/user.store";
 import { api } from "@/utils/api";
 import { localStorage } from "@/utils/localStorage";
 import { Link, router } from "expo-router";
 import { ArrowDown2, ArrowRight2, Bank, Clock } from "iconsax-react-native";
 import { useEffect, useState } from "react";
-import {
-  Alert,
-  Text,
-  TouchableOpacity,
-  useColorScheme,
-  View,
-} from "react-native";
+import { Text, TouchableOpacity, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const formatBalance = (balance: number) => {
@@ -68,6 +63,16 @@ const index = () => {
   const [selectedCurrency, setSelectedCurrency] = useState("USD");
   const [selectedSymbol, setSelectedSymbol] = useState("$");
   const [selectedBalance, setSelectedBalance] = useState(0);
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    title: "",
+    message: "",
+    buttons: [] as Array<{
+      text?: string;
+      style?: "default" | "cancel" | "destructive";
+      onPress: () => void;
+    }>,
+  });
   const colorMode = useColorScheme();
 
   // Check if user needs to set up PIN when component mounts
@@ -122,10 +127,18 @@ const index = () => {
     setIsCreatingPin(true);
     try {
       if (!userData || !userData.user.clerkUserId) {
-        Alert.alert(
-          "Error",
-          "User data not found. Please try signing in again.",
-        );
+        setAlertConfig({
+          title: "Error",
+          message: "User data not found. Please try signing in again.",
+          buttons: [
+            {
+              text: "OK",
+              style: "default",
+              onPress: () => {},
+            },
+          ],
+        });
+        setShowAlertModal(true);
         setShowPinModal(false);
         return;
       }
@@ -157,13 +170,32 @@ const index = () => {
         setUserData(updatedUserData);
 
         setShowPinModal(false);
-        Alert.alert("Success", "PIN created successfully!");
+        setAlertConfig({
+          title: "Success",
+          message: "PIN created successfully!",
+          buttons: [
+            {
+              text: "OK",
+              style: "default",
+              onPress: () => {},
+            },
+          ],
+        });
+        setShowAlertModal(true);
       } else {
         console.error("PIN API error:", response);
-        Alert.alert(
-          "Error",
-          response.error || "Failed to set PIN. Please try again.",
-        );
+        setAlertConfig({
+          title: "Error",
+          message: response.error || "Failed to set PIN. Please try again.",
+          buttons: [
+            {
+              text: "OK",
+              style: "default",
+              onPress: () => {},
+            },
+          ],
+        });
+        setShowAlertModal(true);
       }
     } catch (error: any) {
       console.error("Error setting PIN:", error);
@@ -317,10 +349,11 @@ const index = () => {
         visible={showPinModal}
         isLoading={isCreatingPin}
         onClose={() => {
-          Alert.alert(
-            "PIN Required",
-            "A transaction PIN is required for transactions. You can set it up later in Settings.",
-            [
+          setAlertConfig({
+            title: "PIN Required",
+            message:
+              "A transaction PIN is required for transactions. You can set it up later in Settings.",
+            buttons: [
               {
                 text: "Set PIN Now",
                 style: "cancel",
@@ -336,10 +369,20 @@ const index = () => {
                 },
               },
             ],
-          );
+          });
+          setShowAlertModal(true);
         }}
         onSuccess={handlePinSuccess}
         title="Create your Stase PIN"
+      />
+
+      {/* Custom Alert Modal */}
+      <CustomAlertModal
+        visible={showAlertModal}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setShowAlertModal(false)}
       />
     </SafeAreaView>
   );
