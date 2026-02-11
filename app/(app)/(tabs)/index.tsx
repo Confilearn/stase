@@ -7,7 +7,8 @@ import { localStorage } from "@/utils/localStorage";
 import { Link, router } from "expo-router";
 import { ArrowDown2, ArrowRight2, Bank, Clock } from "iconsax-react-native";
 import { Check as LucideCheck, X } from "lucide-react-native";
-import { useEffect, useState, useMemo } from "react";
+import { memo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import {
   Text,
   TouchableOpacity,
@@ -29,76 +30,21 @@ interface Transaction {
   status: "completed" | "failed" | "pending";
 }
 
-const TransactionItem = ({ item }: { item: Transaction }) => {
-  const getCurrencySymbol = (currency: string) => {
-    switch (currency.toUpperCase()) {
-      case "USD":
-        return "$";
-      case "EUR":
-        return "€";
-      case "GBP":
-        return "£";
-      case "CAD":
-        return "c$";
-      default:
-        return currency;
-    }
-  };
-
-  const getIcon = () => {
-    if (item.status === "failed") {
-      return <X size="20" color="#FFFFFF" />;
-    }
-    return <LucideCheck size="20" color="#FFFFFF" />;
-  };
-
-  const getIconBgColor = () => {
-    switch (item.status) {
-      case "completed":
-        return "bg-success";
-      case "failed":
-        return "bg-error";
-      case "pending":
-        return "bg-warning";
-      default:
-        return "bg-gray-300";
-    }
-  };
-
-  return (
-    <TouchableOpacity
-      onPress={() => router.push(`/(app)/transactionDetails/${item.id}` as any)}
-      className="flex-row items-center justify-between w-full mb-6"
-    >
-      <View className="flex-row gap-3 items-center">
-        <View
-          className={`flex items-center justify-center size-11 rounded-full ${getIconBgColor()}`}
-        >
-          {getIcon()}
-        </View>
-        <View className="flex gap-1">
-          <Text className="font-metropolis-semibold text-[17px] default-text-color capitalize">
-            {item.type}
-          </Text>
-          <Text className="font-metropolis-semibold text-[14px] text-content-300">
-            {item.date}
-          </Text>
-        </View>
-      </View>
-      <View>
-        <Text className="font-metropolis-semibold text-[18px] default-text-color">
-          {getCurrencySymbol(item.currency)}
-          {Number(item.amount).toLocaleString()}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+// Move utility functions outside component
+const getCurrencySymbol = (currency: string) => {
+  switch (currency.toUpperCase()) {
+    case "USD":
+      return "$";
+    case "EUR":
+      return "€";
+    case "GBP":
+      return "£";
+    case "CAD":
+      return "c$";
+    default:
+      return currency;
+  }
 };
-
-const renderTransactionItem: ListRenderItem<Transaction> = ({
-  item,
-  target,
-}) => <TransactionItem item={item} />;
 
 const formatBalance = (balance: number) => {
   const formatted = balance.toLocaleString("en-US", {
@@ -143,6 +89,71 @@ const formatBalance = (balance: number) => {
     fontSizeClass,
   };
 };
+
+const TransactionItem = memo(
+  ({ item, onPress }: { item: Transaction; onPress: (id: string) => void }) => {
+    const getIcon = useCallback(() => {
+      if (item.status === "failed") {
+        return <X size="20" color="#FFFFFF" />;
+      }
+      return <LucideCheck size="20" color="#FFFFFF" />;
+    }, [item.status]);
+
+    const getIconBgColor = useCallback(() => {
+      switch (item.status) {
+        case "completed":
+          return "bg-success";
+        case "failed":
+          return "bg-error";
+        case "pending":
+          return "bg-warning";
+        default:
+          return "bg-gray-300";
+      }
+    }, [item.status]);
+
+    return (
+      <TouchableOpacity
+        onPress={() => onPress(item.id)}
+        className="flex-row items-center justify-between w-full mb-6"
+      >
+        <View className="flex-row gap-3 items-center">
+          <View
+            className={`flex items-center justify-center size-11 rounded-full ${getIconBgColor()}`}
+          >
+            {getIcon()}
+          </View>
+          <View className="flex gap-1">
+            <Text className="font-metropolis-semibold text-[17px] default-text-color capitalize">
+              {item.type}
+            </Text>
+            <Text className="font-metropolis-semibold text-[14px] text-content-300">
+              {item.date}
+            </Text>
+          </View>
+        </View>
+        <View>
+          <Text className="font-metropolis-semibold text-[18px] default-text-color">
+            {getCurrencySymbol(item.currency)}
+            {Number(item.amount).toLocaleString()}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  },
+);
+
+TransactionItem.displayName = "TransactionItem";
+
+const renderTransactionItem: ListRenderItem<Transaction> = useCallback(
+  ({ item, target }) => (
+    <TransactionItem
+      item={item}
+      onPress={(id) => router.push(`/(app)/transactionDetails/${id}` as any)}
+    />
+  ),
+  [],
+);
 
 const BalanceSkeleton = () => {
   return (
@@ -264,7 +275,7 @@ const index = () => {
     }
   }, [bankAccounts]);
 
-  const checkPinSetup = async () => {
+  const checkPinSetup = useCallback(async () => {
     try {
       // Get current user data from local storage
       const localUserData = await localStorage.getUserData();
@@ -289,90 +300,93 @@ const index = () => {
     } catch (error) {
       console.error("Error in checkPinSetup:", error);
     }
-  };
+  }, []);
 
-  const handlePinSuccess = async (pin: string) => {
-    setIsCreatingPin(true);
-    try {
-      if (!userData || !userData.user.clerkUserId) {
-        setAlertConfig({
-          title: "Error",
-          message: "User data not found. Please try signing in again.",
-          buttons: [
-            {
-              text: "OK",
-              style: "default",
-              onPress: () => {},
+  const handlePinSuccess = useCallback(
+    async (pin: string) => {
+      setIsCreatingPin(true);
+      try {
+        if (!userData || !userData.user.clerkUserId) {
+          setAlertConfig({
+            title: "Error",
+            message: "User data not found. Please try signing in again.",
+            buttons: [
+              {
+                text: "OK",
+                style: "default",
+                onPress: () => {},
+              },
+            ],
+          });
+          setShowAlertModal(true);
+          setShowPinModal(false);
+          return;
+        }
+
+        console.log(
+          "Setting transaction PIN for user:",
+          userData.user.clerkUserId,
+        );
+
+        // Call API to set transaction PIN
+        const response = await api.createUserTransactionPin(
+          pin,
+          userData.user.clerkUserId,
+        );
+
+        if (response.success) {
+          console.log("PIN set successfully:", response);
+
+          // Update user data after PIN creation
+          const updatedUserData = {
+            ...userData,
+            user: {
+              ...userData.user,
             },
-          ],
-        });
-        setShowAlertModal(true);
-        setShowPinModal(false);
-        return;
+          };
+
+          await updateUserFromAPI(updatedUserData);
+          await localStorage.setUserData(updatedUserData);
+          setUserData(updatedUserData);
+
+          setShowPinModal(false);
+          setAlertConfig({
+            title: "Success",
+            message: "PIN created successfully!",
+            buttons: [
+              {
+                text: "OK",
+                style: "default",
+                onPress: () => {},
+              },
+            ],
+          });
+          setShowAlertModal(true);
+        } else {
+          console.error("PIN API error:", response);
+          setAlertConfig({
+            title: "Error",
+            message: response.error || "Failed to set PIN. Please try again.",
+            buttons: [
+              {
+                text: "OK",
+                style: "default",
+                onPress: () => {},
+              },
+            ],
+          });
+          setShowAlertModal(true);
+        }
+      } catch (error: any) {
+        console.error("Error setting PIN:", error);
+      } finally {
+        setIsCreatingPin(false);
       }
+    },
+    [userData, updateUserFromAPI],
+  );
 
-      console.log(
-        "Setting transaction PIN for user:",
-        userData.user.clerkUserId,
-      );
-
-      // Call API to set transaction PIN
-      const response = await api.createUserTransactionPin(
-        pin,
-        userData.user.clerkUserId,
-      );
-
-      if (response.success) {
-        console.log("PIN set successfully:", response);
-
-        // Update user data after PIN creation
-        const updatedUserData = {
-          ...userData,
-          user: {
-            ...userData.user,
-          },
-        };
-
-        await updateUserFromAPI(updatedUserData);
-        await localStorage.setUserData(updatedUserData);
-        setUserData(updatedUserData);
-
-        setShowPinModal(false);
-        setAlertConfig({
-          title: "Success",
-          message: "PIN created successfully!",
-          buttons: [
-            {
-              text: "OK",
-              style: "default",
-              onPress: () => {},
-            },
-          ],
-        });
-        setShowAlertModal(true);
-      } else {
-        console.error("PIN API error:", response);
-        setAlertConfig({
-          title: "Error",
-          message: response.error || "Failed to set PIN. Please try again.",
-          buttons: [
-            {
-              text: "OK",
-              style: "default",
-              onPress: () => {},
-            },
-          ],
-        });
-        setShowAlertModal(true);
-      }
-    } catch (error: any) {
-      console.error("Error setting PIN:", error);
-    } finally {
-      setIsCreatingPin(false);
-    }
-  };
-
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       // Get current user data to obtain clerkUserId
@@ -403,7 +417,7 @@ const index = () => {
     } finally {
       setRefreshing(false);
     }
-  };
+  }, [updateUserFromAPI, checkPinSetup]);
 
   // Memoize refresh control to prevent unnecessary re-renders
   const refreshControl = useMemo(
@@ -415,7 +429,7 @@ const index = () => {
         colors={[colorMode === "dark" ? "#A0CCFF" : "#0A385D"]}
       />
     ),
-    [refreshing, colorMode],
+    [refreshing, colorMode, onRefresh],
   );
 
   return (

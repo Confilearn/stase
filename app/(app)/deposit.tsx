@@ -2,7 +2,7 @@ import ChevronLeft from "@/components/ChevronLeft";
 import CustomButton from "@/components/CustomButton";
 import { Link, useRouter } from "expo-router";
 import { ArrowDown2 } from "iconsax-react-native";
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -24,10 +24,10 @@ const deposit = () => {
   const router = useRouter();
   const { user, bankAccounts, updateUserFromAPI } = useUserStore();
 
-  const onChangeText = (text: string) => {
+  const onChangeText = useCallback((text: string) => {
     setAmount(text);
     setError(""); // Clear error when user types
-  };
+  }, []);
 
   const [amount, setAmount] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -39,7 +39,7 @@ const deposit = () => {
     bankAccounts[0] || null,
   );
 
-  // Currency symbols mapping
+  // Move utility functions outside component
   const currencySymbols: Record<string, string> = {
     EUR: "€",
     USD: "$",
@@ -47,16 +47,16 @@ const deposit = () => {
     CAD: "$",
   };
 
-  const handleCurrencySelect = (account: any) => {
-    setSelectedAccount(account);
-  };
-
   const formatBalance = (balance: number, currency: string) => {
     const symbol = currencySymbols[currency] || "";
     return `${symbol}${balance.toLocaleString()}`;
   };
 
-  const validateAmount = () => {
+  const handleCurrencySelect = useCallback((account: any) => {
+    setSelectedAccount(account);
+  }, []);
+
+  const validateAmount = useCallback(() => {
     const numAmount = parseFloat(amount);
     if (!amount || isNaN(numAmount) || numAmount <= 0) {
       setError("Please enter a valid amount");
@@ -67,88 +67,91 @@ const deposit = () => {
       return false;
     }
     return true;
-  };
+  }, [amount]);
 
-  const handlePinSuccess = async (pin: string) => {
-    setisConfirmingPin(true);
+  const handlePinSuccess = useCallback(
+    async (pin: string) => {
+      setisConfirmingPin(true);
 
-    try {
-      // Check network connectivity before making API calls
-      const isOfflineMode = await checkAndNavigateToOffline(router);
-      if (isOfflineMode) {
-        setisConfirmingPin(false);
-        return;
-      }
-
-      if (!user || !selectedAccount) {
-        throw new Error("User or account information missing");
-      }
-
-      // Validate PIN with backend first
-      const pinValidation = await api.validateTransactionPin(
-        pin,
-        user.clerkUserId,
-      );
-
-      if (!pinValidation.success) {
-        setError(pinValidation.error || "Invalid PIN. Please try again.");
-        setShowPinModal(false);
-        return;
-      }
-
-      // PIN is valid, proceed with deposit
-      const depositData = {
-        amount: parseFloat(amount),
-        accountCurrency: selectedAccount.accountCurrency,
-        accountNumber: selectedAccount.accountNumber,
-        transactionPin: pin,
-      };
-
-      const response = await api.depositMoney(depositData, user.clerkUserId);
-
-      if (response.success) {
-        const symbol = currencySymbols[selectedAccount.accountCurrency] || "";
-        const successMessage = `${symbol}${parseFloat(amount).toLocaleString()} added to your ${selectedAccount.accountCurrency} account`;
-
-        // Update user store with data from backend response
-        if (response.user && response.bankAccounts && response.transactions) {
-          await updateUserFromAPI({
-            user: response.user,
-            bankAccounts: response.bankAccounts,
-            transactions: response.transactions,
-          });
+      try {
+        // Check network connectivity before making API calls
+        const isOfflineMode = await checkAndNavigateToOffline(router);
+        if (isOfflineMode) {
+          setisConfirmingPin(false);
+          return;
         }
 
-        setSuccessMessage(successMessage);
+        if (!user || !selectedAccount) {
+          throw new Error("User or account information missing");
+        }
+
+        // Validate PIN with backend first
+        const pinValidation = await api.validateTransactionPin(
+          pin,
+          user.clerkUserId,
+        );
+
+        if (!pinValidation.success) {
+          setError(pinValidation.error || "Invalid PIN. Please try again.");
+          setShowPinModal(false);
+          return;
+        }
+
+        // PIN is valid, proceed with deposit
+        const depositData = {
+          amount: parseFloat(amount),
+          accountCurrency: selectedAccount.accountCurrency,
+          accountNumber: selectedAccount.accountNumber,
+          transactionPin: pin,
+        };
+
+        const response = await api.depositMoney(depositData, user.clerkUserId);
+
+        if (response.success) {
+          const symbol = currencySymbols[selectedAccount.accountCurrency] || "";
+          const successMessage = `${symbol}${parseFloat(amount).toLocaleString()} added to your ${selectedAccount.accountCurrency} account`;
+
+          // Update user store with data from backend response
+          if (response.user && response.bankAccounts && response.transactions) {
+            await updateUserFromAPI({
+              user: response.user,
+              bankAccounts: response.bankAccounts,
+              transactions: response.transactions,
+            });
+          }
+
+          setSuccessMessage(successMessage);
+          setShowPinModal(false);
+          setShowSuccessModal(true);
+          setAmount("");
+          setError("");
+        } else {
+          throw new Error(response.error || "Deposit failed");
+        }
+      } catch (err: any) {
+        console.error("Deposit error:", err);
+        setError(err.message || "Transaction failed. Please try again.");
         setShowPinModal(false);
-        setShowSuccessModal(true);
-        setAmount("");
-        setError("");
-      } else {
-        throw new Error(response.error || "Deposit failed");
+      } finally {
+        setisConfirmingPin(false);
       }
-    } catch (err: any) {
-      console.error("Deposit error:", err);
-      setError(err.message || "Transaction failed. Please try again.");
-      setShowPinModal(false);
-    } finally {
-      setisConfirmingPin(false);
-    }
-  };
+    },
+    [user, selectedAccount, amount, updateUserFromAPI],
+  );
 
   const [successMessage, setSuccessMessage] = useState("");
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setShowSuccessModal(false);
     setSuccessMessage("");
     // Navigate back to home screen
     router.push("/(app)/(tabs)");
-  };
+  }, []);
 
-  const handleContinue = () => {
+  const handleContinue = useCallback(() => {
     if (!validateAmount()) return;
     setShowPinModal(true);
-  };
+  }, [validateAmount]);
 
   return (
     <>
