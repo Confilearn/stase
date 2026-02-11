@@ -139,7 +139,8 @@ const formatBalance = (balance: number) => {
 };
 
 const index = () => {
-  const { transactions, bankAccounts, updateUserFromAPI } = useUserStore();
+  const { user, transactions, bankAccounts, updateUserFromAPI } =
+    useUserStore();
   const [showPinModal, setShowPinModal] = useState(false);
   const [isCreatingPin, setIsCreatingPin] = useState(false);
   const [userData, setUserData] = useState<any>(null);
@@ -380,7 +381,9 @@ const index = () => {
               }}
             >
               <Text className="text-center text-lg font-metropolis-semibold text-primary">
-                CE
+                {user?.firstName && user?.lastName
+                  ? `${user.firstName.charAt(0).toUpperCase()}${user.lastName.charAt(0).toUpperCase()}`
+                  : "CE"}
               </Text>
             </TouchableOpacity>
             <Link
