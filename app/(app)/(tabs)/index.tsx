@@ -138,8 +138,48 @@ const formatBalance = (balance: number) => {
   };
 };
 
+const BalanceSkeleton = () => {
+  return (
+    <View className="flex gap-5 mt-14">
+      {/* Currency selector skeleton */}
+      <View className="border-gray-300 dark:border-gray-600 border-[0.5px] px-3 py-2 rounded-full max-w-[86px] w-full mx-auto">
+        <View className="h-4 bg-gray-300 dark:bg-gray-600 rounded" />
+      </View>
+
+      {/* Balance skeleton */}
+      <View className="mt-6 mb-2 items-center">
+        <View className="h-20 w-48 bg-gray-300 dark:bg-gray-600 rounded" />
+      </View>
+
+      {/* Account details button skeleton */}
+      <View className="bg-gray-300 dark:bg-gray-600 rounded-full px-4 py-2 max-w-[210px] w-full mx-auto h-11" />
+    </View>
+  );
+};
+
+const TransactionSkeleton = () => {
+  return (
+    <View className="flex-row items-center justify-between w-full">
+      <View className="flex-row gap-3 items-center">
+        {/* Icon skeleton */}
+        <View className="size-11 bg-gray-300 dark:bg-gray-600 rounded-full" />
+
+        {/* Text skeletons */}
+        <View className="flex gap-1">
+          <View className="h-5 w-20 bg-gray-300 dark:bg-gray-600 rounded" />
+          <View className="h-4 w-24 bg-gray-300 dark:bg-gray-600 rounded mt-1" />
+        </View>
+      </View>
+
+      {/* Amount skeleton */}
+      <View className="h-6 w-16 bg-gray-300 dark:bg-gray-600 rounded" />
+    </View>
+  );
+};
+
 const index = () => {
-  const { transactions, bankAccounts, updateUserFromAPI } = useUserStore();
+  const { user, transactions, bankAccounts, updateUserFromAPI, isLoading } =
+    useUserStore();
   const [showPinModal, setShowPinModal] = useState(false);
   const [isCreatingPin, setIsCreatingPin] = useState(false);
   const [userData, setUserData] = useState<any>(null);
@@ -158,6 +198,7 @@ const index = () => {
     }>,
   });
   const [refreshing, setRefreshing] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const colorMode = useColorScheme();
 
   // Format transactions and get last 3
@@ -193,6 +234,13 @@ const index = () => {
   useEffect(() => {
     checkPinSetup();
   }, []);
+
+  // Set initial loading to false when data is available
+  useEffect(() => {
+    if (user && bankAccounts) {
+      setIsInitialLoading(false);
+    }
+  }, [user, bankAccounts]);
 
   // Initialize balance and currency from first available account
   useEffect(() => {
@@ -380,7 +428,9 @@ const index = () => {
               }}
             >
               <Text className="text-center text-lg font-metropolis-semibold text-primary">
-                CE
+                {user?.firstName && user?.lastName
+                  ? `${user.firstName.charAt(0).toUpperCase()}${user.lastName.charAt(0).toUpperCase()}`
+                  : "CE"}
               </Text>
             </TouchableOpacity>
             <Link
@@ -394,47 +444,51 @@ const index = () => {
           </View>
 
           {/* Balance Pill */}
-          <View className="flex gap-5 mt-14">
-            <TouchableOpacity
-              className="border-gray-300 dark:border-gray-600 border-[0.5px] px-3 py-2 rounded-full max-w-[86px] w-full mx-auto flex-row items-center justify-between"
-              onPress={() => setShowCurrencyModal(true)}
-            >
-              <Text className="text-[13px] font-metropolis-semibold default-text-color">
-                {selectedCurrency}
-              </Text>
-              <ArrowDown2
-                size={20}
-                color={colorMode === "dark" ? "white" : "black"}
-              />
-            </TouchableOpacity>
-            {/* Balance Display */}
-            <View className="mt-6 mb-2">
-              {(() => {
-                const formattedBalance = formatBalance(selectedBalance);
-                return (
-                  <Text
-                    className={`text-center font-metropolis-bold text-content-100 dark:text-content-500 ${formattedBalance.fontSizeClass}`}
-                  >
-                    {selectedSymbol}
-                    {formattedBalance.text}
-                  </Text>
-                );
-              })()}
+          {isInitialLoading ? (
+            <BalanceSkeleton />
+          ) : (
+            <View className="flex gap-5 mt-14">
+              <TouchableOpacity
+                className="border-gray-300 dark:border-gray-600 border-[0.5px] px-3 py-2 rounded-full max-w-[86px] w-full mx-auto flex-row items-center justify-between"
+                onPress={() => setShowCurrencyModal(true)}
+              >
+                <Text className="text-[13px] font-metropolis-semibold default-text-color">
+                  {selectedCurrency}
+                </Text>
+                <ArrowDown2
+                  size={20}
+                  color={colorMode === "dark" ? "white" : "black"}
+                />
+              </TouchableOpacity>
+              {/* Balance Display */}
+              <View className="mt-6 mb-2">
+                {(() => {
+                  const formattedBalance = formatBalance(selectedBalance);
+                  return (
+                    <Text
+                      className={`text-center font-metropolis-bold text-content-100 dark:text-content-500 ${formattedBalance.fontSizeClass}`}
+                    >
+                      {selectedSymbol}
+                      {formattedBalance.text}
+                    </Text>
+                  );
+                })()}
+              </View>
+              {/* Account Details Button */}
+              <TouchableOpacity
+                className="bg-primary rounded-full px-4 py-2 max-w-[210px] w-full mx-auto flex-row items-center justify-around gap-2"
+                onPress={() => {
+                  router.push(`/(app)/bankDetails/${selectedCurrency}` as any);
+                }}
+              >
+                <Bank size="20" color="#0A385D" variant="Outline" />
+                <Text className="text-center text-secondary font-metropolis-semibold text-lg">
+                  Account details
+                </Text>
+                <ArrowRight2 size="20" color="#0A385D" variant="Outline" />
+              </TouchableOpacity>
             </View>
-            {/* Account Details Button */}
-            <TouchableOpacity
-              className="bg-primary rounded-full px-4 py-2 max-w-[210px] w-full mx-auto flex-row items-center justify-around gap-2"
-              onPress={() => {
-                router.push(`/(app)/bankDetails/${selectedCurrency}` as any);
-              }}
-            >
-              <Bank size="20" color="#0A385D" variant="Outline" />
-              <Text className="text-center text-secondary font-metropolis-semibold text-lg">
-                Account details
-              </Text>
-              <ArrowRight2 size="20" color="#0A385D" variant="Outline" />
-            </TouchableOpacity>
-          </View>
+          )}
 
           {/* Action Buttons */}
           <View className="mt-16 flex-row items-center justify-between">
@@ -485,8 +539,16 @@ const index = () => {
               </Link>
             </View>
             {/* Transactions List */}
-            {recentTransactions.length === 0 ? (
-              <View className="flex-1 items-center justify-center gap-2">
+            {isInitialLoading ? (
+              <View className="flex-1">
+                <View className="mt-4" style={{ gap: 20 }}>
+                  <TransactionSkeleton />
+                  <TransactionSkeleton />
+                  <TransactionSkeleton />
+                </View>
+              </View>
+            ) : recentTransactions.length === 0 ? (
+              <View className="mt-5 flex-col items-center justify-center gap-2">
                 <Clock size="75" color="#6A6C6A" variant="Outline" />
                 <Text className="text-content-300 font-metropolis-semibold text-lg">
                   No transactions yet

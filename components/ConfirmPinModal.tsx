@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -28,6 +28,14 @@ const PinModal: React.FC<PinModalProps> = ({
   const [error, setError] = useState("");
 
   const colorScheme = useColorScheme();
+
+  // Reset PIN when modal is closed
+  useEffect(() => {
+    if (!visible) {
+      setPin("");
+      setError("");
+    }
+  }, [visible]);
 
   // Handle number press
   const handleNumberPress = (num: string) => {
