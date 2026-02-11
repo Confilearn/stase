@@ -2,7 +2,21 @@ import ChevronLeft from "@/components/ChevronLeft";
 import CustomButton from "@/components/CustomButton";
 import { Link, useRouter } from "expo-router";
 import { ArrowDown2 } from "iconsax-react-native";
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
+
+// Move utility functions outside component
+const currencySymbols: Record<string, string> = {
+  EUR: "€",
+  USD: "$",
+  GBP: "£",
+  CAD: "$",
+};
+
+const formatBalance = (balance: number, currency: string) => {
+  const symbol = currencySymbols[currency] || "";
+  return `${symbol}${balance.toLocaleString()}`;
+};
+
 import {
   View,
   Text,
@@ -24,31 +38,6 @@ const convert = () => {
   const router = useRouter();
   const { user, bankAccounts, updateUserFromAPI } = useUserStore();
 
-  const onChangeText = (text: string) => {
-    setText(text);
-    setError(""); // Clear error when user types
-    setReceiverInfo(""); // Clear receiver info when user types
-    setVerifiedUser(null); // Clear verified user when user types
-
-    // Clear existing timer
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-    }
-
-    // Set new timer to check user after 500ms of inactivity
-    if (text.trim()) {
-      const timer = setTimeout(() => {
-        checkUser(text.trim(), user?.clerkUserId);
-      }, 500);
-      setDebounceTimer(timer);
-    }
-  };
-
-  const onChangeNum = (text: string) => {
-    setAmount(text);
-    setError(""); // Clear error when user types
-  };
-
   const [text, setText] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
   const [receiverInfo, setReceiverInfo] = useState<string>("");
@@ -68,71 +57,89 @@ const convert = () => {
     number | NodeJS.Timeout | null
   >(null);
 
-  const handleCurrencySelect = (account: any) => {
-    setSelectedAccount(account);
-  };
+  const checkUser = useCallback(
+    async (emailOrUsername: string, clerkUserId?: string) => {
+      if (!emailOrUsername.trim() || !clerkUserId) return;
 
-  const formatBalance = (balance: number, currency: string) => {
-    const symbol = currencySymbols[currency] || "";
-    return `${symbol}${balance.toLocaleString()}`;
-  };
+      // Check network connectivity before making API calls
+      const isOfflineMode = await checkAndNavigateToOffline(router);
+      if (isOfflineMode) {
+        setIsCheckingUser(false);
+        return;
+      }
 
-  // Currency symbols mapping
-  const currencySymbols: Record<string, string> = {
-    EUR: "€",
-    USD: "$",
-    GBP: "£",
-    CAD: "$",
-  };
+      setIsCheckingUser(true);
+      try {
+        const response = await api.checkUser(emailOrUsername, clerkUserId);
 
-  const checkUser = async (emailOrUsername: string, clerkUserId?: string) => {
-    if (!emailOrUsername.trim() || !clerkUserId) return;
+        if (response.success && response.data) {
+          const userData = response.data;
 
-    // Check network connectivity before making API calls
-    const isOfflineMode = await checkAndNavigateToOffline(router);
-    if (isOfflineMode) {
-      setIsCheckingUser(false);
-      return;
-    }
+          // Check if user is trying to send money to themselves
+          if (
+            userData.email === user?.email ||
+            userData.username === user?.username
+          ) {
+            setReceiverInfo("");
+            setVerifiedUser(null);
+            setError("You cannot send money to yourself");
+            return;
+          }
 
-    setIsCheckingUser(true);
-    try {
-      const response = await api.checkUser(emailOrUsername, clerkUserId);
-
-      if (response.success && response.data) {
-        const userData = response.data;
-
-        // Check if user is trying to send money to themselves
-        if (
-          userData.email === user?.email ||
-          userData.username === user?.username
-        ) {
+          const fullName = `${userData.firstName.charAt(0).toUpperCase() + userData.firstName.slice(1).toLowerCase()} ${userData.lastName.charAt(0).toUpperCase() + userData.lastName.slice(1).toLowerCase()}`;
+          setReceiverInfo(fullName);
+          setVerifiedUser(userData);
+          setError("");
+        } else {
           setReceiverInfo("");
           setVerifiedUser(null);
-          setError("You cannot send money to yourself");
-          return;
+          setError(response.message || response.error || "User not found");
         }
-
-        const fullName = `${userData.firstName.charAt(0).toUpperCase() + userData.firstName.slice(1).toLowerCase()} ${userData.lastName.charAt(0).toUpperCase() + userData.lastName.slice(1).toLowerCase()}`;
-        setReceiverInfo(fullName);
-        setVerifiedUser(userData);
-        setError("");
-      } else {
+      } catch (err: any) {
+        console.error("Check user error:", err);
         setReceiverInfo("");
         setVerifiedUser(null);
-        setError(response.message || response.error || "User not found");
+        setError(err.message || "Failed to verify user");
+      } finally {
+        setIsCheckingUser(false);
       }
-    } catch (err: any) {
-      console.error("Check user error:", err);
-      setReceiverInfo("");
-      setVerifiedUser(null);
-      setError(err.message || "Failed to verify user");
-    } finally {
-      setIsCheckingUser(false);
-    }
-  };
+    },
+    [user?.email, user?.username],
+  );
 
-  const validateTransfer = () => {
+  const onChangeText = useCallback(
+    (text: string) => {
+      setText(text);
+      setError(""); // Clear error when user types
+      setReceiverInfo(""); // Clear receiver info when user types
+      setVerifiedUser(null); // Clear verified user when user types
+
+      // Clear existing timer
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+
+      // Set new timer to check user after 500ms of inactivity
+      if (text.trim()) {
+        const timer = setTimeout(() => {
+          checkUser(text.trim(), user?.clerkUserId);
+        }, 500);
+        setDebounceTimer(timer);
+      }
+    },
+    [debounceTimer, user?.clerkUserId, checkUser],
+  );
+
+  const onChangeNum = useCallback((text: string) => {
+    setAmount(text);
+    setError(""); // Clear error when user types
+  }, []);
+
+  const handleCurrencySelect = useCallback((account: any) => {
+    setSelectedAccount(account);
+  }, []);
+
+  const validateTransfer = useCallback(() => {
     const numAmount = parseFloat(amount);
 
     if (!text.trim()) {
@@ -166,100 +173,106 @@ const convert = () => {
     }
 
     return true;
-  };
+  }, [text, verifiedUser, selectedAccount, amount]);
 
-  const handlePinSuccess = async (pin: string) => {
-    setisConfirmingPin(true);
+  const handlePinSuccess = useCallback(
+    async (pin: string) => {
+      setisConfirmingPin(true);
 
-    try {
-      // Check network connectivity before making API calls
-      const isOfflineMode = await checkAndNavigateToOffline(router);
-      if (isOfflineMode) {
-        setisConfirmingPin(false);
-        return;
-      }
-
-      if (!user || !verifiedUser) {
-        throw new Error("User information missing");
-      }
-
-      // Validate PIN with backend first
-      const pinValidation = await api.validateTransactionPin(
-        pin,
-        user.clerkUserId,
-      );
-
-      if (!pinValidation.success) {
-        setError(pinValidation.error || "Invalid PIN. Please try again.");
-        setShowPinModal(false);
-        return;
-      }
-
-      // PIN is valid, proceed with transfer
-      const transferData = {
-        amount: parseFloat(amount),
-        accountCurrency: selectedAccount.accountCurrency,
-        accountNumber: selectedAccount.accountNumber,
-        email: verifiedUser.email,
-        username: verifiedUser.username,
-        transactionPin: pin,
-      };
-
-      const response = await api.transferMoney(transferData, user.clerkUserId);
-
-      if (response.success) {
-        const symbol = currencySymbols[selectedAccount.accountCurrency] || "";
-        const fullName = `${verifiedUser.firstName} ${verifiedUser.lastName}`;
-        const capitalizedFullName = fullName
-          .split(" ")
-          .map(
-            (word) =>
-              word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
-          )
-          .join(" ");
-        const successMessage = `${symbol}${parseFloat(amount).toLocaleString()} sent to ${capitalizedFullName}`;
-
-        // Update user store with data from backend response
-        if (response.user && response.bankAccounts && response.transactions) {
-          await updateUserFromAPI({
-            user: response.user,
-            bankAccounts: response.bankAccounts,
-            transactions: response.transactions,
-          });
+      try {
+        // Check network connectivity before making API calls
+        const isOfflineMode = await checkAndNavigateToOffline(router);
+        if (isOfflineMode) {
+          setisConfirmingPin(false);
+          return;
         }
 
-        setSuccessMessage(successMessage);
-        setShowPinModal(false);
-        setShowSuccessModal(true);
-        // Reset form
-        setText("");
-        setAmount("");
-        setReceiverInfo("");
-        setVerifiedUser(null);
-        setError("");
-      } else {
-        throw new Error(response.error || "Transfer failed");
-      }
-    } catch (err: any) {
-      console.error("Transfer error:", err);
-      setError(err.message || "Transaction failed. Please try again.");
-      setShowPinModal(false);
-    } finally {
-      setisConfirmingPin(false);
-    }
-  };
+        if (!user || !verifiedUser) {
+          throw new Error("User information missing");
+        }
 
-  const handleClose = () => {
+        // Validate PIN with backend first
+        const pinValidation = await api.validateTransactionPin(
+          pin,
+          user.clerkUserId,
+        );
+
+        if (!pinValidation.success) {
+          setError(pinValidation.error || "Invalid PIN. Please try again.");
+          setShowPinModal(false);
+          return;
+        }
+
+        // PIN is valid, proceed with transfer
+        const transferData = {
+          amount: parseFloat(amount),
+          accountCurrency: selectedAccount.accountCurrency,
+          accountNumber: selectedAccount.accountNumber,
+          email: verifiedUser.email,
+          username: verifiedUser.username,
+          transactionPin: pin,
+        };
+
+        const response = await api.transferMoney(
+          transferData,
+          user.clerkUserId,
+        );
+
+        if (response.success) {
+          const symbol = currencySymbols[selectedAccount.accountCurrency] || "";
+          const fullName = `${verifiedUser.firstName} ${verifiedUser.lastName}`;
+          const capitalizedFullName = fullName
+            .split(" ")
+            .map(
+              (word) =>
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+            )
+            .join(" ");
+          const successMessage = `${symbol}${parseFloat(amount).toLocaleString()} sent to ${capitalizedFullName}`;
+
+          // Update user store with data from backend response
+          if (response.user && response.bankAccounts && response.transactions) {
+            await updateUserFromAPI({
+              user: response.user,
+              bankAccounts: response.bankAccounts,
+              transactions: response.transactions,
+            });
+          }
+
+          setSuccessMessage(successMessage);
+          setShowPinModal(false);
+          setShowSuccessModal(true);
+          // Reset form
+          setText("");
+          setAmount("");
+          setReceiverInfo("");
+          setVerifiedUser(null);
+          setError("");
+        } else {
+          throw new Error(response.error || "Transfer failed");
+        }
+      } catch (err: any) {
+        console.error("Transfer error:", err);
+        setError(err.message || "Transaction failed. Please try again.");
+        setShowPinModal(false);
+      } finally {
+        setisConfirmingPin(false);
+      }
+    },
+    [user, verifiedUser, selectedAccount, amount, updateUserFromAPI],
+  );
+
+  const handleClose = useCallback(() => {
     setShowSuccessModal(false);
     setSuccessMessage("");
     // Navigate back to home screen
     router.push("/(app)/(tabs)");
-  };
+  }, []);
 
-  const handleContinue = () => {
+  const handleContinue = useCallback(() => {
     if (!validateTransfer()) return;
     setShowPinModal(true);
-  };
+  }, [validateTransfer]);
 
   return (
     <>

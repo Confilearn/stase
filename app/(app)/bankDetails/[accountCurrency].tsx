@@ -10,11 +10,14 @@ import {
   MoneyTick,
   Send2,
 } from "iconsax-react-native";
-import { Text, TouchableOpacity, View, FlatList } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
+import { FlashList } from "@shopify/flash-list";
+import type { ListRenderItem } from "@shopify/flash-list";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import * as Clipboard from "expo-clipboard";
 
+// Move utility functions outside component
 const formatBalance = (balance: number) => {
   const formatted = balance.toLocaleString("en-US", {
     minimumFractionDigits: 2,
@@ -35,6 +38,19 @@ const formatBalance = (balance: number) => {
   }
 
   return integerPart;
+};
+
+const getCurrencySymbol = (currency: string) => {
+  switch (currency) {
+    case "EUR":
+      return "€";
+    case "GBP":
+      return "£";
+    case "CAD":
+      return "C$";
+    default:
+      return "$";
+  }
 };
 
 const BankDetailsPage = () => {
@@ -59,99 +75,94 @@ const BankDetailsPage = () => {
     }
   }, [accountCurrency, bankAccounts]);
 
-  const getCurrencySymbol = (currency: string) => {
-    switch (currency) {
-      case "EUR":
-        return "€";
-      case "GBP":
-        return "£";
-      case "CAD":
-        return "C$";
-      default:
-        return "$";
-    }
-  };
+  const bankDetailsData = useMemo(() => {
+    if (!accountDetails) return [];
 
-  const bankDetailsData = accountDetails
-    ? [
-        {
-          label: "Account Name",
-          value: accountDetails.accountName
-            .split(" ")
-            .map(
-              (word: string) =>
-                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
-            )
-            .join(" "),
-        },
-        { label: "Account Number", value: accountDetails.accountNumber },
-        ...(accountDetails.sortCode
-          ? [{ label: "Sort Code", value: accountDetails.sortCode }]
-          : []),
-        ...(accountDetails.iban
-          ? [{ label: "IBAN", value: accountDetails.iban }]
-          : []),
-        { label: "Bank Name", value: accountDetails.bankName },
-        { label: "Branch Address", value: accountDetails.bankAddress },
-        { label: "Swift Code", value: accountDetails.swiftCode },
-      ]
-    : [];
+    const data = [
+      {
+        label: "Account Name",
+        value: accountDetails.accountName
+          .split(" ")
+          .map(
+            (word: string) =>
+              word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+          )
+          .join(" "),
+      },
+      { label: "Account Number", value: accountDetails.accountNumber },
+      ...(accountDetails.sortCode
+        ? [{ label: "Sort Code", value: accountDetails.sortCode }]
+        : []),
+      ...(accountDetails.iban
+        ? [{ label: "IBAN", value: accountDetails.iban }]
+        : []),
+      { label: "Bank Name", value: accountDetails.bankName },
+      { label: "Branch Address", value: accountDetails.bankAddress },
+      { label: "Swift Code", value: accountDetails.swiftCode },
+    ];
 
-  const handleCopy = async (value: string, index: string) => {
+    return data;
+  }, [accountDetails]);
+
+  const handleCopy = useCallback(async (value: string, index: string) => {
     await Clipboard.setStringAsync(value);
     setCopiedItem(index);
-  };
+  }, []);
 
-  const renderBankDetailItem = ({
-    item,
-    index,
-  }: {
-    item: (typeof bankDetailsData)[0];
-    index: number;
-  }) => (
-    <View className="flex-row items-center justify-between mb-6">
-      <View className="gap-1">
-        <Text className="text-content-300 font-metropolis-semibold text-[14px]">
-          {item.label}
-        </Text>
-        <Text className="text-content-200 dark:text-content-400 font-metropolis-semibold text-[16px]">
-          {item.value}
-        </Text>
+  const renderBankDetailItem = useCallback<
+    ListRenderItem<(typeof bankDetailsData)[0]>
+  >(
+    ({ item, index, target }) => (
+      <View className="flex-row items-center justify-between mb-6">
+        <View className="gap-1">
+          <Text className="text-content-300 font-metropolis-semibold text-[14px]">
+            {item.label}
+          </Text>
+          <Text className="text-content-200 dark:text-content-400 font-metropolis-semibold text-[16px]">
+            {item.value}
+          </Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => handleCopy(item.value, index.toString())}
+        >
+          {copiedItem === index.toString() ? (
+            <ClipboardTick size="25" color="#6A6C6A" />
+          ) : (
+            <ClipboardText size="25" color="#6A6C6A" />
+          )}
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        onPress={() => handleCopy(item.value, index.toString())}
-      >
-        {copiedItem === index.toString() ? (
-          <ClipboardTick size="25" color="#6A6C6A" />
-        ) : (
-          <ClipboardText size="25" color="#6A6C6A" />
-        )}
-      </TouchableOpacity>
-    </View>
+    ),
+    [handleCopy, copiedItem],
   );
 
-  const actions = [
-    {
-      icon: <Add size="24" color="#0A385D" variant="Outline" />,
-      label: "Add",
-      onPress: () => router.push("/(app)/deposit"),
-    },
-    {
-      icon: <ArrowSwapHorizontal size="24" color="#0A385D" variant="Outline" />,
-      label: "Convert",
-      onPress: () => router.push("/(app)/(tabs)/convert"),
-    },
-    {
-      icon: <Send2 size="24" color="#0A385D" variant="Outline" />,
-      label: "Send",
-      onPress: () => router.push("/(app)/transfer"),
-    },
-    {
-      icon: <MoneyTick size="24" color="#0A385D" variant="Outline" />,
-      label: "Withdraw",
-      onPress: () => router.push("/(app)/withdraw"),
-    },
-  ];
+  const actions = useMemo(
+    () => [
+      {
+        icon: <Add size="24" color="#0A385D" variant="Outline" />,
+        label: "Add",
+        onPress: () => router.push("/(app)/deposit"),
+      },
+      {
+        icon: (
+          <ArrowSwapHorizontal size="24" color="#0A385D" variant="Outline" />
+        ),
+        label: "Convert",
+        onPress: () => router.push("/(app)/(tabs)/convert"),
+      },
+      {
+        icon: <Send2 size="24" color="#0A385D" variant="Outline" />,
+        label: "Send",
+        onPress: () => router.push("/(app)/transfer"),
+      },
+      {
+        icon: <MoneyTick size="24" color="#0A385D" variant="Outline" />,
+        label: "Withdraw",
+        onPress: () => router.push("/(app)/withdraw"),
+      },
+    ],
+    [],
+  );
 
   useEffect(() => {
     if (copiedItem) {
@@ -221,12 +232,15 @@ const BankDetailsPage = () => {
         </Text>
       </View>
 
-      <FlatList
+      <FlashList
         data={bankDetailsData}
-        renderItem={({ item, index }) => renderBankDetailItem({ item, index })}
+        renderItem={({ item, index, target }) =>
+          renderBankDetailItem({ item, index, target })
+        }
         keyExtractor={(item, index) => index.toString()}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
+        getItemType={(item, index) => "view"}
       />
     </SafeAreaView>
   );

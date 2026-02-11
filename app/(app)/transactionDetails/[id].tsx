@@ -1,9 +1,11 @@
-import { View, Text, FlatList } from "react-native";
+import { View, Text } from "react-native";
+import { FlashList } from "@shopify/flash-list";
+import type { ListRenderItem } from "@shopify/flash-list";
 import { Link, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ChevronLeft from "@/components/ChevronLeft";
 import { useUserStore } from "@/store/user.store";
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 
 const transactionDetails = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -13,7 +15,7 @@ const transactionDetails = () => {
     return transactions.find((tx) => tx.id === id);
   }, [transactions, id]);
 
-  const getCreativeLabel = (key: string) => {
+  const getCreativeLabel = useCallback((key: string) => {
     const labels: Record<string, string> = {
       transactionType: "Operation Type",
       currency: "Currency",
@@ -33,9 +35,9 @@ const transactionDetails = () => {
       direction: "Direction",
     };
     return labels[key] || key;
-  };
+  }, []);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = useCallback((status: string) => {
     switch (status.toLowerCase()) {
       case "success":
       case "completed":
@@ -48,9 +50,9 @@ const transactionDetails = () => {
       default:
         return "default-text-color";
     }
-  };
+  }, []);
 
-  const formatAmount = (amount: number, currency: string) => {
+  const formatAmount = useCallback((amount: number, currency: string) => {
     const currencySymbols: Record<string, string> = {
       USD: "$",
       CAD: "C$",
@@ -59,9 +61,9 @@ const transactionDetails = () => {
     };
     const symbol = currencySymbols[currency] || currency;
     return `${symbol}${amount.toLocaleString()}`;
-  };
+  }, []);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleString("en-US", {
       weekday: "long",
       year: "numeric",
@@ -70,10 +72,15 @@ const transactionDetails = () => {
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
+  }, []);
 
   const transactionData = useMemo(() => {
     if (!transaction) return [];
+
+    const capitalizeFirstLetter = (str: string) => {
+      if (!str) return str;
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    };
 
     const mainData = [
       {
@@ -240,30 +247,27 @@ const transactionDetails = () => {
       valueClass: "default-text-color",
     });
 
-    // Capitalize first letter of all values
-    const capitalizeFirstLetter = (str: string) => {
-      if (!str) return str;
-      return str.charAt(0).toUpperCase() + str.slice(1);
-    };
-
     const allData = [...mainData, ...endData];
     return allData.map((item) => ({
       ...item,
       value: capitalizeFirstLetter(item.value),
     }));
-  }, [transaction]);
+  }, [transaction, getCreativeLabel, formatAmount, getStatusColor, formatDate]);
 
-  const renderItem = ({ item }: { item: (typeof transactionData)[0] }) => (
-    <View className="flex-row items-center justify-between py-3">
-      <Text className="font-metropolis-semibold text-lg text-content-300 flex-1">
-        {item.label}
-      </Text>
-      <Text
-        className={`font-metropolis-semibold text-lg ${item.valueClass} text-right flex-1`}
-      >
-        {item.value}
-      </Text>
-    </View>
+  const renderItem = useCallback<ListRenderItem<(typeof transactionData)[0]>>(
+    ({ item, target }) => (
+      <View className="flex-row items-center justify-between py-3 mb-3">
+        <Text className="font-metropolis-semibold text-lg text-content-300 flex-1">
+          {item.label}
+        </Text>
+        <Text
+          className={`font-metropolis-semibold text-lg ${item.valueClass} text-right flex-1`}
+        >
+          {item.value}
+        </Text>
+      </View>
+    ),
+    [],
   );
 
   if (!transaction) {
@@ -306,13 +310,13 @@ const transactionDetails = () => {
         Transaction Information
       </Text>
 
-      <FlatList
+      <FlashList
         data={transactionData}
         renderItem={renderItem}
         keyExtractor={(item, index) => index.toString()}
-        contentContainerClassName="gap-4 mt-6 pb-8"
-        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 28, paddingTop: 16 }}
         showsVerticalScrollIndicator={false}
+        getItemType={(item, index) => "view"}
       />
     </SafeAreaView>
   );
