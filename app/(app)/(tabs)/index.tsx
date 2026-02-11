@@ -13,10 +13,11 @@ import {
   TouchableOpacity,
   useColorScheme,
   View,
-  FlatList,
   RefreshControl,
   ScrollView,
 } from "react-native";
+import { FlashList } from "@shopify/flash-list";
+import type { ListRenderItem } from "@shopify/flash-list";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface Transaction {
@@ -67,7 +68,7 @@ const TransactionItem = ({ item }: { item: Transaction }) => {
   return (
     <TouchableOpacity
       onPress={() => router.push(`/(app)/transactionDetails/${item.id}` as any)}
-      className="flex-row items-center justify-between w-full"
+      className="flex-row items-center justify-between w-full mb-6"
     >
       <View className="flex-row gap-3 items-center">
         <View
@@ -93,6 +94,11 @@ const TransactionItem = ({ item }: { item: Transaction }) => {
     </TouchableOpacity>
   );
 };
+
+const renderTransactionItem: ListRenderItem<Transaction> = ({
+  item,
+  target,
+}) => <TransactionItem item={item} />;
 
 const formatBalance = (balance: number) => {
   const formatted = balance.toLocaleString("en-US", {
@@ -447,7 +453,7 @@ const index = () => {
           {isInitialLoading ? (
             <BalanceSkeleton />
           ) : (
-            <View className="flex gap-5 mt-14">
+            <View className="flex gap-5 mt-12">
               <TouchableOpacity
                 className="border-gray-300 dark:border-gray-600 border-[0.5px] px-3 py-2 rounded-full max-w-[86px] w-full mx-auto flex-row items-center justify-between"
                 onPress={() => setShowCurrencyModal(true)}
@@ -491,7 +497,7 @@ const index = () => {
           )}
 
           {/* Action Buttons */}
-          <View className="mt-16 flex-row items-center justify-between">
+          <View className="mt-14 flex-row items-center justify-between">
             <TouchableOpacity
               className="bg-primary rounded-full px-5 py-3"
               onPress={() => {
@@ -556,14 +562,14 @@ const index = () => {
               </View>
             ) : (
               <View className="flex-1">
-                <FlatList
+                <FlashList
                   data={recentTransactions}
-                  renderItem={({ item }) => <TransactionItem item={item} />}
+                  renderItem={renderTransactionItem}
                   keyExtractor={(item) => item.id}
-                  className="mt-4"
-                  contentContainerStyle={{ gap: 20 }}
+                  contentContainerStyle={{ paddingTop: 16 }}
                   showsVerticalScrollIndicator={false}
                   scrollEnabled={false}
+                  getItemType={(item, index) => "view"}
                 />
               </View>
             )}

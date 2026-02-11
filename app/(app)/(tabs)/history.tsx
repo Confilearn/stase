@@ -3,7 +3,9 @@ import { Link, router } from "expo-router";
 import { Clock } from "iconsax-react-native";
 import { Check as LucideCheck, X } from "lucide-react-native";
 import { useState, useMemo, useEffect } from "react";
-import { View, Text, FlatList, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
+import { FlashList } from "@shopify/flash-list";
+import type { ListRenderItem } from "@shopify/flash-list";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUserStore } from "@/store/user.store";
 
@@ -55,7 +57,7 @@ const TransactionItem = ({ item }: { item: Transaction }) => {
   return (
     <TouchableOpacity
       onPress={() => router.push(`/(app)/transactionDetails/${item.id}` as any)}
-      className="flex-row items-center justify-between w-full"
+      className="flex-row items-center justify-between w-full mb-6"
     >
       <View className="flex-row gap-3 items-center">
         <View
@@ -81,6 +83,11 @@ const TransactionItem = ({ item }: { item: Transaction }) => {
     </TouchableOpacity>
   );
 };
+
+const renderTransactionItem: ListRenderItem<Transaction> = ({
+  item,
+  target,
+}) => <TransactionItem item={item} />;
 
 const history = () => {
   const { transactions, isLoading } = useUserStore();
@@ -135,17 +142,13 @@ const history = () => {
         </View>
       ) : (
         // Transactions list
-        <FlatList
+        <FlashList
           data={formattedTransactions}
-          renderItem={({ item }) => <TransactionItem item={item} />}
+          renderItem={renderTransactionItem}
           keyExtractor={(item) => item.id}
-          className="mt-7"
-          contentContainerStyle={{ gap: 32 }}
+          contentContainerStyle={{ paddingTop: 24 }}
           showsVerticalScrollIndicator={false}
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={10}
-          initialNumToRender={10}
+          getItemType={(item, index) => "view"}
         />
       )}
     </SafeAreaView>

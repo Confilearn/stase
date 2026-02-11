@@ -10,7 +10,9 @@ import {
   MoneyTick,
   Send2,
 } from "iconsax-react-native";
-import { Text, TouchableOpacity, View, FlatList } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
+import { FlashList } from "@shopify/flash-list";
+import type { ListRenderItem } from "@shopify/flash-list";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import * as Clipboard from "expo-clipboard";
@@ -102,12 +104,10 @@ const BankDetailsPage = () => {
     setCopiedItem(index);
   };
 
-  const renderBankDetailItem = ({
+  const renderBankDetailItem: ListRenderItem<(typeof bankDetailsData)[0]> = ({
     item,
     index,
-  }: {
-    item: (typeof bankDetailsData)[0];
-    index: number;
+    target,
   }) => (
     <View className="flex-row items-center justify-between mb-6">
       <View className="gap-1">
@@ -221,12 +221,15 @@ const BankDetailsPage = () => {
         </Text>
       </View>
 
-      <FlatList
+      <FlashList
         data={bankDetailsData}
-        renderItem={({ item, index }) => renderBankDetailItem({ item, index })}
+        renderItem={({ item, index, target }) =>
+          renderBankDetailItem({ item, index, target })
+        }
         keyExtractor={(item, index) => index.toString()}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
+        getItemType={(item, index) => "view"}
       />
     </SafeAreaView>
   );

@@ -1,4 +1,6 @@
-import { View, Text, FlatList } from "react-native";
+import { View, Text } from "react-native";
+import { FlashList } from "@shopify/flash-list";
+import type { ListRenderItem } from "@shopify/flash-list";
 import { Link, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ChevronLeft from "@/components/ChevronLeft";
@@ -253,8 +255,11 @@ const transactionDetails = () => {
     }));
   }, [transaction]);
 
-  const renderItem = ({ item }: { item: (typeof transactionData)[0] }) => (
-    <View className="flex-row items-center justify-between py-3">
+  const renderItem: ListRenderItem<(typeof transactionData)[0]> = ({
+    item,
+    target,
+  }) => (
+    <View className="flex-row items-center justify-between py-3 mb-3">
       <Text className="font-metropolis-semibold text-lg text-content-300 flex-1">
         {item.label}
       </Text>
@@ -306,13 +311,13 @@ const transactionDetails = () => {
         Transaction Information
       </Text>
 
-      <FlatList
+      <FlashList
         data={transactionData}
         renderItem={renderItem}
         keyExtractor={(item, index) => index.toString()}
-        contentContainerClassName="gap-4 mt-6 pb-8"
-        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 28, paddingTop: 16 }}
         showsVerticalScrollIndicator={false}
+        getItemType={(item, index) => "view"}
       />
     </SafeAreaView>
   );
