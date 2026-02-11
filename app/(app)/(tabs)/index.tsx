@@ -145,16 +145,6 @@ const TransactionItem = memo(
 
 TransactionItem.displayName = "TransactionItem";
 
-const renderTransactionItem: ListRenderItem<Transaction> = useCallback(
-  ({ item, target }) => (
-    <TransactionItem
-      item={item}
-      onPress={(id) => router.push(`/(app)/transactionDetails/${id}` as any)}
-    />
-  ),
-  [],
-);
-
 const BalanceSkeleton = () => {
   return (
     <View className="flex gap-5 mt-14">
@@ -258,6 +248,16 @@ const index = () => {
       setIsInitialLoading(false);
     }
   }, [user, bankAccounts]);
+
+  const renderTransactionItem: ListRenderItem<Transaction> = useCallback(
+    ({ item, target }) => (
+      <TransactionItem
+        item={item}
+        onPress={(id) => router.push(`/(app)/transactionDetails/${id}` as any)}
+      />
+    ),
+    [],
+  );
 
   // Initialize balance and currency from first available account
   useEffect(() => {

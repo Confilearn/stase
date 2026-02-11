@@ -90,16 +90,6 @@ const TransactionItem = memo(
 
 TransactionItem.displayName = "TransactionItem";
 
-const renderTransactionItem: ListRenderItem<Transaction> = useCallback(
-  ({ item, target }) => (
-    <TransactionItem
-      item={item}
-      onPress={(id) => router.push(`/(app)/transactionDetails/${id}` as any)}
-    />
-  ),
-  [],
-);
-
 const history = () => {
   const { transactions, isLoading } = useUserStore();
 
@@ -125,6 +115,16 @@ const history = () => {
         | "pending",
     }));
   }, [transactions]);
+
+  const renderTransactionItem: ListRenderItem<Transaction> = useCallback(
+    ({ item, target }) => (
+      <TransactionItem
+        item={item}
+        onPress={(id) => router.push(`/(app)/transactionDetails/${id}` as any)}
+      />
+    ),
+    [],
+  );
 
   return (
     <SafeAreaView className="container">
