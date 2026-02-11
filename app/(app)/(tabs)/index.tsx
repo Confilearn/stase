@@ -548,7 +548,7 @@ const index = () => {
                 </View>
               </View>
             ) : recentTransactions.length === 0 ? (
-              <View className="flex-1 items-center justify-center gap-2">
+              <View className="mt-5 flex-col items-center justify-center gap-2">
                 <Clock size="75" color="#6A6C6A" variant="Outline" />
                 <Text className="text-content-300 font-metropolis-semibold text-lg">
                   No transactions yet
