@@ -1,16 +1,9 @@
 import CustomButton from "@/components/CustomButton";
 import { useRouter } from "expo-router";
 import { ArrowDown2 } from "iconsax-react-native";
-import { useState, useCallback, useMemo } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  useColorScheme,
-  TextInput,
-} from "react-native";
+import { useState, useCallback } from "react";
+import { View, Text, TouchableOpacity, useColorScheme } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import cn from "clsx";
 import ConfirmPinModal from "@/components/ConfirmPinModal";
 import SuccessModal from "@/components/SuccessModal";
 import CurrencyModal from "@/components/CurrencyModal";
@@ -42,11 +35,6 @@ const Deposit = () => {
   const [selectedAccount, setSelectedAccount] = useState(
     bankAccounts[0] || null,
   );
-
-  const formatBalance = (balance: number, currency: string) => {
-    const symbol = currencySymbols[currency] || "";
-    return `${symbol}${balance.toLocaleString()}`;
-  };
 
   const handleCurrencySelect = useCallback((account: any) => {
     setSelectedAccount(account);
@@ -132,7 +120,7 @@ const Deposit = () => {
         setisConfirmingPin(false);
       }
     },
-    [user, selectedAccount, amount, updateUserFromAPI, currencySymbols, router],
+    [user, selectedAccount, amount, updateUserFromAPI, router],
   );
 
   const [successMessage, setSuccessMessage] = useState("");
