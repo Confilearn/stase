@@ -2,8 +2,8 @@ import ChevronLeft from "@/components/ChevronLeft";
 import { Link, router } from "expo-router";
 import { Clock } from "iconsax-react-native";
 import { Check as LucideCheck, X } from "lucide-react-native";
-import { memo } from "react";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { memo, useMemo, useCallback } from "react";
+
 import { View, Text, TouchableOpacity } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import type { ListRenderItem } from "@shopify/flash-list";
@@ -90,7 +90,7 @@ const TransactionItem = memo(
 
 TransactionItem.displayName = "TransactionItem";
 
-const history = () => {
+const History = () => {
   const { transactions, isLoading } = useUserStore();
 
   const formattedTransactions = useMemo(() => {
@@ -166,4 +166,4 @@ const history = () => {
   );
 };
 
-export default history;
+export default History;

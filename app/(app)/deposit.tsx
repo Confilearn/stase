@@ -19,7 +19,7 @@ import { useUserStore } from "@/store/user.store";
 import { api } from "@/utils/api";
 import { checkAndNavigateToOffline } from "@/utils/offlineDetection";
 
-const deposit = () => {
+const Deposit = () => {
   const colorMode = useColorScheme();
   const router = useRouter();
   const { user, bankAccounts, updateUserFromAPI } = useUserStore();
@@ -40,12 +40,15 @@ const deposit = () => {
   );
 
   // Move utility functions outside component
-  const currencySymbols: Record<string, string> = {
-    EUR: "€",
-    USD: "$",
-    GBP: "£",
-    CAD: "$",
-  };
+  const currencySymbols: Record<string, string> = useMemo(
+    () => ({
+      EUR: "€",
+      USD: "$",
+      GBP: "£",
+      CAD: "$",
+    }),
+    [],
+  );
 
   const formatBalance = (balance: number, currency: string) => {
     const symbol = currencySymbols[currency] || "";
@@ -136,7 +139,7 @@ const deposit = () => {
         setisConfirmingPin(false);
       }
     },
-    [user, selectedAccount, amount, updateUserFromAPI],
+    [user, selectedAccount, amount, updateUserFromAPI, currencySymbols, router],
   );
 
   const [successMessage, setSuccessMessage] = useState("");
@@ -146,7 +149,7 @@ const deposit = () => {
     setSuccessMessage("");
     // Navigate back to home screen
     router.push("/(app)/(tabs)");
-  }, []);
+  }, [router]);
 
   const handleContinue = useCallback(() => {
     if (!validateAmount()) return;
@@ -259,4 +262,4 @@ const deposit = () => {
   );
 };
 
-export default deposit;
+export default Deposit;

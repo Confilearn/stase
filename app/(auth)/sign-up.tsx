@@ -68,11 +68,11 @@ const SignUp = () => {
   const [alertConfig, setAlertConfig] = useState({
     title: "",
     message: "",
-    buttons: [] as Array<{
+    buttons: [] as {
       text?: string;
       style?: "default" | "cancel" | "destructive";
       onPress: () => void;
-    }>,
+    }[],
   });
   const [form, setForm] = useState({
     email: "",

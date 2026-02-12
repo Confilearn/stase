@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  Modal,
-  Pressable,
-  Text,
-  TouchableOpacity,
-  View,
-  useColorScheme,
-} from "react-native";
+import { Modal, Pressable, Text, TouchableOpacity, View } from "react-native";
 
 interface AlertButton {
   text?: string;
@@ -29,9 +22,6 @@ const CustomAlertModal: React.FC<CustomAlertModalProps> = ({
   buttons,
   onClose,
 }) => {
-  const colorMode = useColorScheme();
-  const isDarkMode = colorMode === "dark";
-
   const getButtonStyle = (style: string = "default") => {
     switch (style) {
       case "destructive":

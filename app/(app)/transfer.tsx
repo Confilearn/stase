@@ -2,20 +2,7 @@ import ChevronLeft from "@/components/ChevronLeft";
 import CustomButton from "@/components/CustomButton";
 import { Link, useRouter } from "expo-router";
 import { ArrowDown2 } from "iconsax-react-native";
-import { useState, useCallback, useMemo } from "react";
-
-// Move utility functions outside component
-const currencySymbols: Record<string, string> = {
-  EUR: "€",
-  USD: "$",
-  GBP: "£",
-  CAD: "$",
-};
-
-const formatBalance = (balance: number, currency: string) => {
-  const symbol = currencySymbols[currency] || "";
-  return `${symbol}${balance.toLocaleString()}`;
-};
+import { useState, useCallback } from "react";
 
 import {
   View,
@@ -33,7 +20,20 @@ import { useUserStore } from "@/store/user.store";
 import { api } from "@/utils/api";
 import { checkAndNavigateToOffline } from "@/utils/offlineDetection";
 
-const convert = () => {
+// Move utility functions outside component
+const currencySymbols: Record<string, string> = {
+  EUR: "€",
+  USD: "$",
+  GBP: "£",
+  CAD: "$",
+};
+
+const formatBalance = (balance: number, currency: string) => {
+  const symbol = currencySymbols[currency] || "";
+  return `${symbol}${balance.toLocaleString()}`;
+};
+
+const Convert = () => {
   const colorMode = useColorScheme();
   const router = useRouter();
   const { user, bankAccounts, updateUserFromAPI } = useUserStore();
@@ -104,7 +104,7 @@ const convert = () => {
         setIsCheckingUser(false);
       }
     },
-    [user?.email, user?.username],
+    [user?.email, user?.username, router],
   );
 
   const onChangeText = useCallback(
@@ -259,7 +259,7 @@ const convert = () => {
         setisConfirmingPin(false);
       }
     },
-    [user, verifiedUser, selectedAccount, amount, updateUserFromAPI],
+    [user, verifiedUser, selectedAccount, amount, updateUserFromAPI, router],
   );
 
   const handleClose = useCallback(() => {
@@ -267,7 +267,7 @@ const convert = () => {
     setSuccessMessage("");
     // Navigate back to home screen
     router.push("/(app)/(tabs)");
-  }, []);
+  }, [router]);
 
   const handleContinue = useCallback(() => {
     if (!validateTransfer()) return;
@@ -416,4 +416,4 @@ const convert = () => {
   );
 };
 
-export default convert;
+export default Convert;

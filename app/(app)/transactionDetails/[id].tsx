@@ -7,7 +7,7 @@ import ChevronLeft from "@/components/ChevronLeft";
 import { useUserStore } from "@/store/user.store";
 import { useMemo, useCallback } from "react";
 
-const transactionDetails = () => {
+const TransactionDetails = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { transactions } = useUserStore();
 
@@ -322,4 +322,4 @@ const transactionDetails = () => {
   );
 };
 
-export default transactionDetails;
+export default TransactionDetails;

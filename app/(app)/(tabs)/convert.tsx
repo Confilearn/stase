@@ -20,12 +20,11 @@ import { api } from "@/utils/api";
 import {
   convertCurrency,
   getExchangeRate,
-  SUPPORTED_CURRENCIES,
   SupportedCurrency,
 } from "@/utils/currencyRates";
 import { checkAndNavigateToOffline } from "@/utils/offlineDetection";
 
-const convert = () => {
+const Convert = () => {
   const colorMode = useColorScheme();
   const router = useRouter();
   const { user, bankAccounts, updateUserFromAPI } = useUserStore();
@@ -95,7 +94,7 @@ const convert = () => {
         } else {
           setConvertedAmount("");
         }
-      } catch (err) {
+      } catch {
         setError("Invalid currency pair");
         setConvertedAmount("");
         setExchangeRate(1);
@@ -270,9 +269,6 @@ const convert = () => {
 
   const formatExchangeRate = () => {
     if (fromCurrencyAccount && toCurrencyAccount) {
-      const fromSymbol =
-        currencySymbols[fromCurrencyAccount.accountCurrency] || "";
-      const toSymbol = currencySymbols[toCurrencyAccount.accountCurrency] || "";
       return `1 ${fromCurrencyAccount.accountCurrency} = ${exchangeRate.toFixed(4)} ${toCurrencyAccount.accountCurrency}`;
     }
     return "";
@@ -358,7 +354,7 @@ const convert = () => {
               {formatExchangeRate()}
             </Text>
             <Text className="text-sm font-metropolis-medium text-content-300">
-              Today's Rate
+              Today&apos;s Rate
             </Text>
           </View>
         </View>
@@ -458,4 +454,4 @@ const convert = () => {
   );
 };
 
-export default convert;
+export default Convert;

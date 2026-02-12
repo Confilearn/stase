@@ -7,8 +7,8 @@ import { localStorage } from "@/utils/localStorage";
 import { Link, router } from "expo-router";
 import { ArrowDown2, ArrowRight2, Bank, Clock } from "iconsax-react-native";
 import { Check as LucideCheck, X } from "lucide-react-native";
-import { memo } from "react";
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { memo, useEffect, useState, useMemo, useCallback } from "react";
+
 import {
   Text,
   TouchableOpacity,
@@ -184,8 +184,8 @@ const TransactionSkeleton = () => {
   );
 };
 
-const index = () => {
-  const { user, transactions, bankAccounts, updateUserFromAPI, isLoading } =
+const Index = () => {
+  const { user, transactions, bankAccounts, updateUserFromAPI } =
     useUserStore();
   const [showPinModal, setShowPinModal] = useState(false);
   const [isCreatingPin, setIsCreatingPin] = useState(false);
@@ -198,11 +198,11 @@ const index = () => {
   const [alertConfig, setAlertConfig] = useState({
     title: "",
     message: "",
-    buttons: [] as Array<{
+    buttons: [] as {
       text?: string;
       style?: "default" | "cancel" | "destructive";
       onPress: () => void;
-    }>,
+    }[],
   });
   const [refreshing, setRefreshing] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -237,10 +237,37 @@ const index = () => {
       .slice(0, 3);
   }, [transactions]);
 
+  const checkPinSetup = useCallback(async () => {
+    try {
+      // Get current user data from local storage
+      const localUserData = await localStorage.getUserData();
+      if (!localUserData || !localUserData.user) return;
+
+      // Check if user has PIN by calling the API
+      try {
+        const response = await api.checkTransactionPin(
+          localUserData.user.clerkUserId,
+        );
+        if (response.success && !response.hasTransactionPin) {
+          // User doesn't have PIN, show modal
+          setShowPinModal(true);
+        }
+      } catch (error) {
+        console.error("Error checking PIN status:", error);
+        // If API fails, don't show modal
+      }
+
+      // User data loaded successfully
+      setUserData(localUserData);
+    } catch (error) {
+      console.error("Error in checkPinSetup:", error);
+    }
+  }, []);
+
   // Check if user needs to set up PIN when component mounts
   useEffect(() => {
     checkPinSetup();
-  }, []);
+  }, [checkPinSetup]);
 
   // Set initial loading to false when data is available
   useEffect(() => {
@@ -274,33 +301,6 @@ const index = () => {
       setSelectedBalance(firstAccount.balance);
     }
   }, [bankAccounts]);
-
-  const checkPinSetup = useCallback(async () => {
-    try {
-      // Get current user data from local storage
-      const localUserData = await localStorage.getUserData();
-      if (!localUserData || !localUserData.user) return;
-
-      // Check if user has PIN by calling the API
-      try {
-        const response = await api.checkTransactionPin(
-          localUserData.user.clerkUserId,
-        );
-        if (response.success && !response.hasTransactionPin) {
-          // User doesn't have PIN, show modal
-          setShowPinModal(true);
-        }
-      } catch (error) {
-        console.error("Error checking PIN status:", error);
-        // If API fails, don't show modal
-      }
-
-      // User data loaded successfully
-      setUserData(localUserData);
-    } catch (error) {
-      console.error("Error in checkPinSetup:", error);
-    }
-  }, []);
 
   const handlePinSuccess = useCallback(
     async (pin: string) => {
@@ -654,4 +654,4 @@ const index = () => {
   );
 };
 
-export default index;
+export default Index;

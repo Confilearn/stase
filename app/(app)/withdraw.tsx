@@ -19,7 +19,7 @@ import { useUserStore } from "@/store/user.store";
 import { api } from "@/utils/api";
 import { checkAndNavigateToOffline } from "@/utils/offlineDetection";
 
-const withdraw = () => {
+const Withdraw = () => {
   const colorMode = useColorScheme();
   const router = useRouter();
   const { user, bankAccounts, updateUserFromAPI } = useUserStore();
@@ -263,4 +263,4 @@ const withdraw = () => {
   );
 };
 
-export default withdraw;
+export default Withdraw;
