@@ -6,8 +6,7 @@ import { api } from "@/utils/api";
 import { localStorage } from "@/utils/localStorage";
 import { Link, router } from "expo-router";
 import { ArrowDown2, ArrowRight2, Bank, Clock } from "iconsax-react-native";
-import { Check as LucideCheck, X } from "lucide-react-native";
-import { memo, useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 
 import {
   Text,
@@ -20,31 +19,8 @@ import {
 import { FlashList } from "@shopify/flash-list";
 import type { ListRenderItem } from "@shopify/flash-list";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-interface Transaction {
-  id: string;
-  type: "deposit" | "withdraw" | "convert" | "send" | "receive";
-  amount: string;
-  currency: string;
-  date: string;
-  status: "completed" | "failed" | "pending";
-}
-
-// Move utility functions outside component
-const getCurrencySymbol = (currency: string) => {
-  switch (currency.toUpperCase()) {
-    case "USD":
-      return "$";
-    case "EUR":
-      return "€";
-    case "GBP":
-      return "£";
-    case "CAD":
-      return "c$";
-    default:
-      return currency;
-  }
-};
+import TransactionItem from "@/components/TransactionItem";
+import type { Transaction } from "@/components/TransactionItem";
 
 const formatBalance = (balance: number) => {
   const formatted = balance.toLocaleString("en-US", {
@@ -89,61 +65,6 @@ const formatBalance = (balance: number) => {
     fontSizeClass,
   };
 };
-
-const TransactionItem = memo(
-  ({ item, onPress }: { item: Transaction; onPress: (id: string) => void }) => {
-    const getIcon = useCallback(() => {
-      if (item.status === "failed") {
-        return <X size="20" color="#FFFFFF" />;
-      }
-      return <LucideCheck size="20" color="#FFFFFF" />;
-    }, [item.status]);
-
-    const getIconBgColor = useCallback(() => {
-      switch (item.status) {
-        case "completed":
-          return "bg-success";
-        case "failed":
-          return "bg-error";
-        case "pending":
-          return "bg-warning";
-        default:
-          return "bg-gray-300";
-      }
-    }, [item.status]);
-
-    return (
-      <TouchableOpacity
-        onPress={() => onPress(item.id)}
-        className="flex-row items-center justify-between w-full mb-6"
-      >
-        <View className="flex-row gap-3 items-center">
-          <View
-            className={`flex items-center justify-center size-11 rounded-full ${getIconBgColor()}`}
-          >
-            {getIcon()}
-          </View>
-          <View className="flex gap-1">
-            <Text className="font-metropolis-semibold text-[17px] default-text-color capitalize">
-              {item.type}
-            </Text>
-            <Text className="font-metropolis-semibold text-[14px] text-content-300">
-              {item.date}
-            </Text>
-          </View>
-        </View>
-        <View>
-          <Text className="font-metropolis-semibold text-[18px] default-text-color">
-            {getCurrencySymbol(item.currency)}
-            {Number(item.amount).toLocaleString()}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    );
-  },
-);
-
-TransactionItem.displayName = "TransactionItem";
 
 const BalanceSkeleton = () => {
   return (

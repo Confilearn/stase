@@ -1,94 +1,15 @@
 import ChevronLeft from "@/components/ChevronLeft";
 import { Link, router } from "expo-router";
 import { Clock } from "iconsax-react-native";
-import { Check as LucideCheck, X } from "lucide-react-native";
-import { memo, useMemo, useCallback } from "react";
+import { useMemo, useCallback } from "react";
 
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import type { ListRenderItem } from "@shopify/flash-list";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUserStore } from "@/store/user.store";
-
-interface Transaction {
-  id: string;
-  type: "deposit" | "withdraw" | "convert" | "send" | "receive";
-  amount: string;
-  currency: string;
-  date: string;
-  status: "completed" | "failed" | "pending";
-}
-
-// Move utility functions outside component
-const getCurrencySymbol = (currency: string) => {
-  switch (currency.toUpperCase()) {
-    case "USD":
-      return "$";
-    case "EUR":
-      return "€";
-    case "GBP":
-      return "£";
-    case "CAD":
-      return "c$";
-    default:
-      return currency;
-  }
-};
-
-const TransactionItem = memo(
-  ({ item, onPress }: { item: Transaction; onPress: (id: string) => void }) => {
-    const getIcon = useCallback(() => {
-      if (item.status === "failed") {
-        return <X size="20" color="#FFFFFF" />;
-      }
-      return <LucideCheck size="20" color="#FFFFFF" />;
-    }, [item.status]);
-
-    const getIconBgColor = useCallback(() => {
-      switch (item.status) {
-        case "completed":
-          return "bg-success";
-        case "failed":
-          return "bg-error";
-        case "pending":
-          return "bg-warning";
-        default:
-          return "bg-gray-300";
-      }
-    }, [item.status]);
-
-    return (
-      <TouchableOpacity
-        onPress={() => onPress(item.id)}
-        className="flex-row items-center justify-between w-full mb-6"
-      >
-        <View className="flex-row gap-3 items-center">
-          <View
-            className={`flex items-center justify-center size-11 rounded-full ${getIconBgColor()}`}
-          >
-            {getIcon()}
-          </View>
-          <View className="flex gap-1">
-            <Text className="font-metropolis-semibold text-[17px] default-text-color capitalize">
-              {item.type}
-            </Text>
-            <Text className="font-metropolis-semibold text-[14px] text-content-300">
-              {item.date}
-            </Text>
-          </View>
-        </View>
-        <View>
-          <Text className="font-metropolis-semibold text-[18px] default-text-color">
-            {getCurrencySymbol(item.currency)}
-            {Number(item.amount).toLocaleString()}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    );
-  },
-);
-
-TransactionItem.displayName = "TransactionItem";
+import TransactionItem from "@/components/TransactionItem";
+import type { Transaction } from "@/components/TransactionItem";
 
 const History = () => {
   const { transactions, isLoading } = useUserStore();
@@ -117,7 +38,7 @@ const History = () => {
   }, [transactions]);
 
   const renderTransactionItem: ListRenderItem<Transaction> = useCallback(
-    ({ item, target }) => (
+    ({ item }) => (
       <TransactionItem
         item={item}
         onPress={(id) => router.push(`/(app)/transactionDetails/${id}` as any)}
