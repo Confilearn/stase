@@ -3,7 +3,7 @@ import { View, Text } from "react-native";
 import ChevronLeft from "./ChevronLeft";
 
 interface ScreenHeaderProps {
-  title: string;
+  title?: string;
   backHref?: string;
   rightComponent?: React.ReactNode;
 }

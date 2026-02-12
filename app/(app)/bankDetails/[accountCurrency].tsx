@@ -16,6 +16,8 @@ import type { ListRenderItem } from "@shopify/flash-list";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import * as Clipboard from "expo-clipboard";
+import ScreenHeader from "@/components/ScreenHeader";
+import { getCurrencySymbol } from "@/utils/currencyUtils";
 
 // Move utility functions outside component
 const formatBalance = (balance: number) => {
@@ -38,19 +40,6 @@ const formatBalance = (balance: number) => {
   }
 
   return integerPart;
-};
-
-const getCurrencySymbol = (currency: string) => {
-  switch (currency) {
-    case "EUR":
-      return "€";
-    case "GBP":
-      return "£";
-    case "CAD":
-      return "C$";
-    default:
-      return "$";
-  }
 };
 
 const BankDetailsPage = () => {
@@ -187,11 +176,8 @@ const BankDetailsPage = () => {
 
   return (
     <SafeAreaView className="container">
-      <View className="flex-row gap-5 mt-2 items-center">
-        <Link href={"/(app)/(tabs)"}>
-          <ChevronLeft />
-        </Link>
-      </View>
+      {/* Header */}
+      <ScreenHeader />
 
       {/* Balance Section */}
       <View className="mt-8 gap-1.5">

@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import ChevronLeft from "@/components/ChevronLeft";
 import { useUserStore } from "@/store/user.store";
 import { useMemo, useCallback } from "react";
+import ScreenHeader from "@/components/ScreenHeader";
 
 const TransactionDetails = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -55,7 +56,7 @@ const TransactionDetails = () => {
   const formatAmount = useCallback((amount: number, currency: string) => {
     const currencySymbols: Record<string, string> = {
       USD: "$",
-      CAD: "C$",
+      CAD: "c$",
       EUR: "€",
       GBP: "£",
     };
@@ -289,11 +290,8 @@ const TransactionDetails = () => {
 
   return (
     <SafeAreaView className="container">
-      <View className="flex-row gap-5 mt-2 items-center">
-        <Link href={"/(app)/(tabs)"}>
-          <ChevronLeft />
-        </Link>
-      </View>
+      {/* Header */}
+      <ScreenHeader />
 
       <View className="mt-16 mb-8">
         <Text className="text-center font-metropolis-bold default-text-color text-5xl">

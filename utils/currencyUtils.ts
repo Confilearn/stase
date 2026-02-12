@@ -1,6 +1,6 @@
 // Currency utility functions and constants
 
-export const CURRENCY_SYMBOLS: Record<string, string> = {
+export const currencySymbols: Record<string, string> = {
   EUR: "€",
   USD: "$",
   GBP: "£",
@@ -23,7 +23,7 @@ export const getCurrencySymbol = (currency: string): string => {
 };
 
 export const formatBalance = (balance: number, currency: string): string => {
-  const symbol = CURRENCY_SYMBOLS[currency] || "";
+  const symbol = currencySymbols[currency] || "";
   return `${symbol}${balance.toLocaleString()}`;
 };
 

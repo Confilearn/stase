@@ -213,6 +213,7 @@ const Convert = () => {
   return (
     <>
       <SafeAreaView className="container">
+        {/* Header */}
         <ScreenHeader title="Convert Money" />
 
         {/* From currency selector and amount */}

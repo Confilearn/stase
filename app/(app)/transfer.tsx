@@ -3,7 +3,6 @@ import CustomButton from "@/components/CustomButton";
 import { Link, useRouter } from "expo-router";
 import { ArrowDown2 } from "iconsax-react-native";
 import { useState, useCallback } from "react";
-
 import {
   View,
   Text,
@@ -19,14 +18,10 @@ import CurrencyModal from "@/components/CurrencyModal";
 import { useUserStore } from "@/store/user.store";
 import { api } from "@/utils/api";
 import { checkAndNavigateToOffline } from "@/utils/offlineDetection";
-
-// Move utility functions outside component
-const currencySymbols: Record<string, string> = {
-  EUR: "€",
-  USD: "$",
-  GBP: "£",
-  CAD: "$",
-};
+import { currencySymbols } from "@/utils/currencyUtils";
+import ScreenHeader from "@/components/ScreenHeader";
+import AmountInput from "@/components/AmountInput";
+import BalanceInfo from "@/components/BalanceInfo";
 
 const formatBalance = (balance: number, currency: string) => {
   const symbol = currencySymbols[currency] || "";
@@ -277,14 +272,8 @@ const Convert = () => {
   return (
     <>
       <SafeAreaView className="container">
-        <View className="flex-row gap-5 mt-2 items-center">
-          <Link href={"/(app)/(tabs)"}>
-            <ChevronLeft />
-          </Link>
-          <Text className="text-2xl font-metropolis-bold text-content-100 dark:text-content-500">
-            Send Money
-          </Text>
-        </View>
+        {/* Header */}
+        <ScreenHeader title="Send Money" />
 
         {/* Receiver Input */}
         <View className="mt-16">
@@ -345,37 +334,21 @@ const Convert = () => {
           </TouchableOpacity>
 
           {/* Amount */}
-          <TextInput
-            className={cn(
-              "text-5xl font-metropolis-bold",
-              error ? "text-error" : "text-primary",
-            )}
+          <AmountInput
             value={amount}
-            autoCapitalize="none"
-            autoCorrect={false}
             onChangeText={onChangeNum}
-            keyboardType="numeric"
-            placeholder="0"
-            placeholderTextColor="#6A6C6A"
+            error={!!error}
           />
         </View>
 
         <View className="h-[0.5px] dark:bg-gray-700 bg-gray-300 mt-12" />
 
         {/* Balance info */}
-        <View className="flex-row items-center justify-between mt-12">
-          <Text className="text-lg font-metropolis-semibold text-content-300">
-            {selectedAccount?.accountCurrency || "GBP"} Balance
-          </Text>
-          <Text className="text-lg font-metropolis-semibold default-text-color">
-            {selectedAccount
-              ? formatBalance(
-                  selectedAccount.balance,
-                  selectedAccount.accountCurrency,
-                )
-              : "£0.00"}
-          </Text>
-        </View>
+        <BalanceInfo
+          label={selectedAccount?.accountCurrency || "GBP"}
+          balance={selectedAccount.balance}
+          currency={selectedAccount.accountCurrency}
+        />
 
         {/* Continue button */}
         <View className="flex-1 justify-end">

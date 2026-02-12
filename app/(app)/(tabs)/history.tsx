@@ -10,9 +10,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useUserStore } from "@/store/user.store";
 import TransactionItem from "@/components/TransactionItem";
 import type { Transaction } from "@/components/TransactionItem";
+import ScreenHeader from "@/components/ScreenHeader";
 
 const History = () => {
-  const { transactions, isLoading } = useUserStore();
+  const { transactions } = useUserStore();
 
   const formattedTransactions = useMemo(() => {
     return transactions.map((transaction) => ({
@@ -49,22 +50,10 @@ const History = () => {
 
   return (
     <SafeAreaView className="container">
-      <View className="flex-row gap-5 mt-2 items-center">
-        <Link href={"/(app)/(tabs)"}>
-          <ChevronLeft />
-        </Link>
-        <Text className="text-2xl font-metropolis-bold text-content-100 dark:text-content-500">
-          Transactions
-        </Text>
-      </View>
+      {/* Header */}
+      <ScreenHeader title="Transactions" />
 
-      {isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-content-300 font-metropolis-semibold text-xl">
-            Loading transactions...
-          </Text>
-        </View>
-      ) : formattedTransactions.length === 0 ? (
+      {formattedTransactions.length === 0 ? (
         // No transactions
         <View className="flex-1 items-center justify-center gap-4">
           <Clock size="100" color="#6A6C6A" variant="Outline" />
