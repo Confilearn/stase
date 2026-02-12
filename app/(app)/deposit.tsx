@@ -1,6 +1,5 @@
-import ChevronLeft from "@/components/ChevronLeft";
 import CustomButton from "@/components/CustomButton";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { ArrowDown2 } from "iconsax-react-native";
 import { useState, useCallback, useMemo } from "react";
 import {
@@ -18,8 +17,13 @@ import CurrencyModal from "@/components/CurrencyModal";
 import { useUserStore } from "@/store/user.store";
 import { api } from "@/utils/api";
 import { checkAndNavigateToOffline } from "@/utils/offlineDetection";
+import ErrorMessage from "@/components/ErrorMessage";
+import ScreenHeader from "@/components/ScreenHeader";
+import BalanceInfo from "@/components/BalanceInfo";
+import { currencySymbols } from "@/utils/currencyUtils";
+import AmountInput from "@/components/AmountInput";
 
-const deposit = () => {
+const Deposit = () => {
   const colorMode = useColorScheme();
   const router = useRouter();
   const { user, bankAccounts, updateUserFromAPI } = useUserStore();
@@ -38,14 +42,6 @@ const deposit = () => {
   const [selectedAccount, setSelectedAccount] = useState(
     bankAccounts[0] || null,
   );
-
-  // Move utility functions outside component
-  const currencySymbols: Record<string, string> = {
-    EUR: "€",
-    USD: "$",
-    GBP: "£",
-    CAD: "$",
-  };
 
   const formatBalance = (balance: number, currency: string) => {
     const symbol = currencySymbols[currency] || "";
@@ -136,7 +132,7 @@ const deposit = () => {
         setisConfirmingPin(false);
       }
     },
-    [user, selectedAccount, amount, updateUserFromAPI],
+    [user, selectedAccount, amount, updateUserFromAPI, currencySymbols, router],
   );
 
   const [successMessage, setSuccessMessage] = useState("");
@@ -146,7 +142,7 @@ const deposit = () => {
     setSuccessMessage("");
     // Navigate back to home screen
     router.push("/(app)/(tabs)");
-  }, []);
+  }, [router]);
 
   const handleContinue = useCallback(() => {
     if (!validateAmount()) return;
@@ -156,14 +152,8 @@ const deposit = () => {
   return (
     <>
       <SafeAreaView className="container">
-        <View className="flex-row gap-5 mt-2 items-center">
-          <Link href={"/(app)/(tabs)"}>
-            <ChevronLeft />
-          </Link>
-          <Text className="text-2xl font-metropolis-bold text-content-100 dark:text-content-500">
-            Add Money
-          </Text>
-        </View>
+        {/* Header */}
+        <ScreenHeader title="Add Money" />
 
         {/* Currency selector*/}
         <View className="mt-16 relative flex-row items-center gap-2 justify-between">
@@ -181,45 +171,23 @@ const deposit = () => {
           </TouchableOpacity>
 
           {/* Amount */}
-          <TextInput
-            className={cn(
-              "text-5xl font-metropolis-bold",
-              error ? "text-error" : "text-primary",
-            )}
+          <AmountInput
             value={amount}
-            autoCapitalize="none"
-            autoCorrect={false}
             onChangeText={onChangeText}
-            keyboardType="numeric"
-            editable={true}
-            placeholder="0"
-            placeholderTextColor="#6A6C6A"
+            error={!!error}
           />
         </View>
 
         {/* Error message */}
-        {error && (
-          <Text className="text-[14px] text-error font-metropolis-semibold mt-5">
-            {error}
-          </Text>
-        )}
+        <ErrorMessage message={error} />
 
         <View className="h-[0.5px] dark:bg-gray-700 bg-gray-300 mt-12" />
 
         {/* Balance info */}
-        <View className="flex-row items-center justify-between mt-12">
-          <Text className="text-lg font-metropolis-semibold text-content-300">
-            Balance
-          </Text>
-          <Text className="text-lg font-metropolis-semibold default-text-color">
-            {selectedAccount
-              ? formatBalance(
-                  selectedAccount.balance,
-                  selectedAccount.accountCurrency,
-                )
-              : "£0.00"}
-          </Text>
-        </View>
+        <BalanceInfo
+          balance={selectedAccount.balance}
+          currency={selectedAccount.accountCurrency}
+        />
 
         {/* Continue button */}
         <View className="flex-1 justify-end">
@@ -259,4 +227,4 @@ const deposit = () => {
   );
 };
 
-export default deposit;
+export default Deposit;

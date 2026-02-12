@@ -5,8 +5,8 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from "react-native";
-import { useColorScheme } from "react-native";
+ useColorScheme } from "react-native";
+
 import { StatusBar } from "expo-status-bar";
 
 interface PinModalProps {

@@ -1,14 +1,5 @@
 import React from "react";
-import {
-  Modal,
-  Text,
-  TouchableOpacity,
-  View,
-  StatusBar,
-  Pressable,
-} from "react-native";
-import { useColorScheme } from "react-native";
-import { ArrowDown2, Bank } from "iconsax-react-native";
+import { Modal, Text, TouchableOpacity, View, Pressable } from "react-native";
 
 interface CurrencyAccount {
   id: string;
@@ -39,8 +30,6 @@ const CurrencyModal: React.FC<CurrencyModalProps> = ({
   selectedCurrency = "USD",
   bankAccounts,
 }) => {
-  const colorScheme = useColorScheme();
-
   // Currency symbols mapping
   const currencySymbols: Record<string, string> = {
     EUR: "€",

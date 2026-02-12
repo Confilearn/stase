@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
   Modal,
   Text,
   TouchableOpacity,
   View,
+  useColorScheme,
 } from "react-native";
-import { useColorScheme } from "react-native";
+
 import { StatusBar } from "expo-status-bar";
 
 interface PinModalProps {

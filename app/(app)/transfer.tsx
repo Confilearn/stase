@@ -2,21 +2,7 @@ import ChevronLeft from "@/components/ChevronLeft";
 import CustomButton from "@/components/CustomButton";
 import { Link, useRouter } from "expo-router";
 import { ArrowDown2 } from "iconsax-react-native";
-import { useState, useCallback, useMemo } from "react";
-
-// Move utility functions outside component
-const currencySymbols: Record<string, string> = {
-  EUR: "€",
-  USD: "$",
-  GBP: "£",
-  CAD: "$",
-};
-
-const formatBalance = (balance: number, currency: string) => {
-  const symbol = currencySymbols[currency] || "";
-  return `${symbol}${balance.toLocaleString()}`;
-};
-
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -32,8 +18,18 @@ import CurrencyModal from "@/components/CurrencyModal";
 import { useUserStore } from "@/store/user.store";
 import { api } from "@/utils/api";
 import { checkAndNavigateToOffline } from "@/utils/offlineDetection";
+import { currencySymbols } from "@/utils/currencyUtils";
+import ScreenHeader from "@/components/ScreenHeader";
+import AmountInput from "@/components/AmountInput";
+import BalanceInfo from "@/components/BalanceInfo";
+import { debounce } from "lodash";
 
-const convert = () => {
+const formatBalance = (balance: number, currency: string) => {
+  const symbol = currencySymbols[currency] || "";
+  return `${symbol}${balance.toLocaleString()}`;
+};
+
+const Convert = () => {
   const colorMode = useColorScheme();
   const router = useRouter();
   const { user, bankAccounts, updateUserFromAPI } = useUserStore();
@@ -53,9 +49,6 @@ const convert = () => {
   const [selectedAccount, setSelectedAccount] = useState(
     bankAccounts[0] || null,
   );
-  const [debounceTimer, setDebounceTimer] = useState<
-    number | NodeJS.Timeout | null
-  >(null);
 
   const checkUser = useCallback(
     async (emailOrUsername: string, clerkUserId?: string) => {
@@ -104,8 +97,26 @@ const convert = () => {
         setIsCheckingUser(false);
       }
     },
-    [user?.email, user?.username],
+    [user?.email, user?.username, router],
   );
+
+  // Create debounced checkUser function
+  const debouncedCheckUser = useMemo(
+    () =>
+      debounce((emailOrUsername: string, clerkUserId?: string) => {
+        if (emailOrUsername.trim() && clerkUserId) {
+          checkUser(emailOrUsername.trim(), clerkUserId);
+        }
+      }, 700),
+    [checkUser],
+  );
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      debouncedCheckUser.cancel();
+    };
+  }, [debouncedCheckUser]);
 
   const onChangeText = useCallback(
     (text: string) => {
@@ -114,20 +125,10 @@ const convert = () => {
       setReceiverInfo(""); // Clear receiver info when user types
       setVerifiedUser(null); // Clear verified user when user types
 
-      // Clear existing timer
-      if (debounceTimer) {
-        clearTimeout(debounceTimer);
-      }
-
-      // Set new timer to check user after 500ms of inactivity
-      if (text.trim()) {
-        const timer = setTimeout(() => {
-          checkUser(text.trim(), user?.clerkUserId);
-        }, 500);
-        setDebounceTimer(timer);
-      }
+      // Use debounced function
+      debouncedCheckUser(text, user?.clerkUserId);
     },
-    [debounceTimer, user?.clerkUserId, checkUser],
+    [debouncedCheckUser, user?.clerkUserId],
   );
 
   const onChangeNum = useCallback((text: string) => {
@@ -259,7 +260,7 @@ const convert = () => {
         setisConfirmingPin(false);
       }
     },
-    [user, verifiedUser, selectedAccount, amount, updateUserFromAPI],
+    [user, verifiedUser, selectedAccount, amount, updateUserFromAPI, router],
   );
 
   const handleClose = useCallback(() => {
@@ -267,7 +268,7 @@ const convert = () => {
     setSuccessMessage("");
     // Navigate back to home screen
     router.push("/(app)/(tabs)");
-  }, []);
+  }, [router]);
 
   const handleContinue = useCallback(() => {
     if (!validateTransfer()) return;
@@ -277,14 +278,8 @@ const convert = () => {
   return (
     <>
       <SafeAreaView className="container">
-        <View className="flex-row gap-5 mt-2 items-center">
-          <Link href={"/(app)/(tabs)"}>
-            <ChevronLeft />
-          </Link>
-          <Text className="text-2xl font-metropolis-bold text-content-100 dark:text-content-500">
-            Send Money
-          </Text>
-        </View>
+        {/* Header */}
+        <ScreenHeader title="Send Money" />
 
         {/* Receiver Input */}
         <View className="mt-16">
@@ -345,37 +340,21 @@ const convert = () => {
           </TouchableOpacity>
 
           {/* Amount */}
-          <TextInput
-            className={cn(
-              "text-5xl font-metropolis-bold",
-              error ? "text-error" : "text-primary",
-            )}
+          <AmountInput
             value={amount}
-            autoCapitalize="none"
-            autoCorrect={false}
             onChangeText={onChangeNum}
-            keyboardType="numeric"
-            placeholder="0"
-            placeholderTextColor="#6A6C6A"
+            error={!!error}
           />
         </View>
 
         <View className="h-[0.5px] dark:bg-gray-700 bg-gray-300 mt-12" />
 
         {/* Balance info */}
-        <View className="flex-row items-center justify-between mt-12">
-          <Text className="text-lg font-metropolis-semibold text-content-300">
-            {selectedAccount?.accountCurrency || "GBP"} Balance
-          </Text>
-          <Text className="text-lg font-metropolis-semibold default-text-color">
-            {selectedAccount
-              ? formatBalance(
-                  selectedAccount.balance,
-                  selectedAccount.accountCurrency,
-                )
-              : "£0.00"}
-          </Text>
-        </View>
+        <BalanceInfo
+          label={selectedAccount?.accountCurrency || "GBP"}
+          balance={selectedAccount.balance}
+          currency={selectedAccount.accountCurrency}
+        />
 
         {/* Continue button */}
         <View className="flex-1 justify-end">
@@ -416,4 +395,4 @@ const convert = () => {
   );
 };
 
-export default convert;
+export default Convert;

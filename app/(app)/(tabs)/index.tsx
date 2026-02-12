@@ -6,9 +6,8 @@ import { api } from "@/utils/api";
 import { localStorage } from "@/utils/localStorage";
 import { Link, router } from "expo-router";
 import { ArrowDown2, ArrowRight2, Bank, Clock } from "iconsax-react-native";
-import { Check as LucideCheck, X } from "lucide-react-native";
-import { memo } from "react";
 import { useEffect, useState, useMemo, useCallback } from "react";
+
 import {
   Text,
   TouchableOpacity,
@@ -20,31 +19,8 @@ import {
 import { FlashList } from "@shopify/flash-list";
 import type { ListRenderItem } from "@shopify/flash-list";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-interface Transaction {
-  id: string;
-  type: "deposit" | "withdraw" | "convert" | "send" | "receive";
-  amount: string;
-  currency: string;
-  date: string;
-  status: "completed" | "failed" | "pending";
-}
-
-// Move utility functions outside component
-const getCurrencySymbol = (currency: string) => {
-  switch (currency.toUpperCase()) {
-    case "USD":
-      return "$";
-    case "EUR":
-      return "€";
-    case "GBP":
-      return "£";
-    case "CAD":
-      return "c$";
-    default:
-      return currency;
-  }
-};
+import TransactionItem from "@/components/TransactionItem";
+import type { Transaction } from "@/components/TransactionItem";
 
 const formatBalance = (balance: number) => {
   const formatted = balance.toLocaleString("en-US", {
@@ -90,61 +66,6 @@ const formatBalance = (balance: number) => {
   };
 };
 
-const TransactionItem = memo(
-  ({ item, onPress }: { item: Transaction; onPress: (id: string) => void }) => {
-    const getIcon = useCallback(() => {
-      if (item.status === "failed") {
-        return <X size="20" color="#FFFFFF" />;
-      }
-      return <LucideCheck size="20" color="#FFFFFF" />;
-    }, [item.status]);
-
-    const getIconBgColor = useCallback(() => {
-      switch (item.status) {
-        case "completed":
-          return "bg-success";
-        case "failed":
-          return "bg-error";
-        case "pending":
-          return "bg-warning";
-        default:
-          return "bg-gray-300";
-      }
-    }, [item.status]);
-
-    return (
-      <TouchableOpacity
-        onPress={() => onPress(item.id)}
-        className="flex-row items-center justify-between w-full mb-6"
-      >
-        <View className="flex-row gap-3 items-center">
-          <View
-            className={`flex items-center justify-center size-11 rounded-full ${getIconBgColor()}`}
-          >
-            {getIcon()}
-          </View>
-          <View className="flex gap-1">
-            <Text className="font-metropolis-semibold text-[17px] default-text-color capitalize">
-              {item.type}
-            </Text>
-            <Text className="font-metropolis-semibold text-[14px] text-content-300">
-              {item.date}
-            </Text>
-          </View>
-        </View>
-        <View>
-          <Text className="font-metropolis-semibold text-[18px] default-text-color">
-            {getCurrencySymbol(item.currency)}
-            {Number(item.amount).toLocaleString()}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    );
-  },
-);
-
-TransactionItem.displayName = "TransactionItem";
-
 const BalanceSkeleton = () => {
   return (
     <View className="flex gap-5 mt-14">
@@ -184,8 +105,8 @@ const TransactionSkeleton = () => {
   );
 };
 
-const index = () => {
-  const { user, transactions, bankAccounts, updateUserFromAPI, isLoading } =
+const Index = () => {
+  const { user, transactions, bankAccounts, updateUserFromAPI } =
     useUserStore();
   const [showPinModal, setShowPinModal] = useState(false);
   const [isCreatingPin, setIsCreatingPin] = useState(false);
@@ -198,11 +119,11 @@ const index = () => {
   const [alertConfig, setAlertConfig] = useState({
     title: "",
     message: "",
-    buttons: [] as Array<{
+    buttons: [] as {
       text?: string;
       style?: "default" | "cancel" | "destructive";
       onPress: () => void;
-    }>,
+    }[],
   });
   const [refreshing, setRefreshing] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -237,10 +158,37 @@ const index = () => {
       .slice(0, 3);
   }, [transactions]);
 
+  const checkPinSetup = useCallback(async () => {
+    try {
+      // Get current user data from local storage
+      const localUserData = await localStorage.getUserData();
+      if (!localUserData || !localUserData.user) return;
+
+      // Check if user has PIN by calling the API
+      try {
+        const response = await api.checkTransactionPin(
+          localUserData.user.clerkUserId,
+        );
+        if (response.success && !response.hasTransactionPin) {
+          // User doesn't have PIN, show modal
+          setShowPinModal(true);
+        }
+      } catch (error) {
+        console.error("Error checking PIN status:", error);
+        // If API fails, don't show modal
+      }
+
+      // User data loaded successfully
+      setUserData(localUserData);
+    } catch (error) {
+      console.error("Error in checkPinSetup:", error);
+    }
+  }, []);
+
   // Check if user needs to set up PIN when component mounts
   useEffect(() => {
     checkPinSetup();
-  }, []);
+  }, [checkPinSetup]);
 
   // Set initial loading to false when data is available
   useEffect(() => {
@@ -274,33 +222,6 @@ const index = () => {
       setSelectedBalance(firstAccount.balance);
     }
   }, [bankAccounts]);
-
-  const checkPinSetup = useCallback(async () => {
-    try {
-      // Get current user data from local storage
-      const localUserData = await localStorage.getUserData();
-      if (!localUserData || !localUserData.user) return;
-
-      // Check if user has PIN by calling the API
-      try {
-        const response = await api.checkTransactionPin(
-          localUserData.user.clerkUserId,
-        );
-        if (response.success && !response.hasTransactionPin) {
-          // User doesn't have PIN, show modal
-          setShowPinModal(true);
-        }
-      } catch (error) {
-        console.error("Error checking PIN status:", error);
-        // If API fails, don't show modal
-      }
-
-      // User data loaded successfully
-      setUserData(localUserData);
-    } catch (error) {
-      console.error("Error in checkPinSetup:", error);
-    }
-  }, []);
 
   const handlePinSuccess = useCallback(
     async (pin: string) => {
@@ -654,4 +575,4 @@ const index = () => {
   );
 };
 
-export default index;
+export default Index;
