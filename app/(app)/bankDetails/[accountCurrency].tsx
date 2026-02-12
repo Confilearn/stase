@@ -1,7 +1,6 @@
 import { ActionButton } from "@/components/ActionButton";
-import ChevronLeft from "@/components/ChevronLeft";
 import { useUserStore } from "@/store/user.store";
-import { Link, useLocalSearchParams, router } from "expo-router";
+import { useLocalSearchParams, router } from "expo-router";
 import {
   Add,
   ArrowSwapHorizontal,

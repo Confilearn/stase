@@ -1,6 +1,5 @@
-import ChevronLeft from "@/components/ChevronLeft";
 import CustomButton from "@/components/CustomButton";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { ArrowDown2 } from "iconsax-react-native";
 import { useState, useCallback, useMemo, useEffect } from "react";
 import {
@@ -23,11 +22,6 @@ import ScreenHeader from "@/components/ScreenHeader";
 import AmountInput from "@/components/AmountInput";
 import BalanceInfo from "@/components/BalanceInfo";
 import { debounce } from "lodash";
-
-const formatBalance = (balance: number, currency: string) => {
-  const symbol = currencySymbols[currency] || "";
-  return `${symbol}${balance.toLocaleString()}`;
-};
 
 const Convert = () => {
   const colorMode = useColorScheme();

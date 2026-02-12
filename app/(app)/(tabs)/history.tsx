@@ -1,5 +1,4 @@
-import ChevronLeft from "@/components/ChevronLeft";
-import { Link, router } from "expo-router";
+import { router } from "expo-router";
 import { Clock } from "iconsax-react-native";
 import { useMemo, useCallback } from "react";
 
