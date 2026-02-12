@@ -2,7 +2,7 @@ import ChevronLeft from "@/components/ChevronLeft";
 import CustomButton from "@/components/CustomButton";
 import { Link, useRouter } from "expo-router";
 import { ArrowDown2 } from "iconsax-react-native";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import { currencySymbols } from "@/utils/currencyUtils";
 import ScreenHeader from "@/components/ScreenHeader";
 import AmountInput from "@/components/AmountInput";
 import BalanceInfo from "@/components/BalanceInfo";
+import { debounce } from "lodash";
 
 const formatBalance = (balance: number, currency: string) => {
   const symbol = currencySymbols[currency] || "";
@@ -48,9 +49,6 @@ const Convert = () => {
   const [selectedAccount, setSelectedAccount] = useState(
     bankAccounts[0] || null,
   );
-  const [debounceTimer, setDebounceTimer] = useState<
-    number | NodeJS.Timeout | null
-  >(null);
 
   const checkUser = useCallback(
     async (emailOrUsername: string, clerkUserId?: string) => {
@@ -102,6 +100,24 @@ const Convert = () => {
     [user?.email, user?.username, router],
   );
 
+  // Create debounced checkUser function
+  const debouncedCheckUser = useMemo(
+    () =>
+      debounce((emailOrUsername: string, clerkUserId?: string) => {
+        if (emailOrUsername.trim() && clerkUserId) {
+          checkUser(emailOrUsername.trim(), clerkUserId);
+        }
+      }, 700),
+    [checkUser],
+  );
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      debouncedCheckUser.cancel();
+    };
+  }, [debouncedCheckUser]);
+
   const onChangeText = useCallback(
     (text: string) => {
       setText(text);
@@ -109,20 +125,10 @@ const Convert = () => {
       setReceiverInfo(""); // Clear receiver info when user types
       setVerifiedUser(null); // Clear verified user when user types
 
-      // Clear existing timer
-      if (debounceTimer) {
-        clearTimeout(debounceTimer);
-      }
-
-      // Set new timer to check user after 500ms of inactivity
-      if (text.trim()) {
-        const timer = setTimeout(() => {
-          checkUser(text.trim(), user?.clerkUserId);
-        }, 500);
-        setDebounceTimer(timer);
-      }
+      // Use debounced function
+      debouncedCheckUser(text, user?.clerkUserId);
     },
-    [debounceTimer, user?.clerkUserId, checkUser],
+    [debouncedCheckUser, user?.clerkUserId],
   );
 
   const onChangeNum = useCallback((text: string) => {
