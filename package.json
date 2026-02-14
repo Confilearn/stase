@@ -11,7 +11,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "eas-install": "npm ci",
-    "prebuild": "npm run eas-install"
+    "prebuild": "npm run lint && npm run eas-install"
   },
   "dependencies": {
     "@clerk/clerk-expo": "^2.19.20",

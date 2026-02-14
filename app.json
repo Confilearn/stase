@@ -4,7 +4,7 @@
     "slug": "stase",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon-2.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "stase",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -18,7 +18,7 @@
     },
     "web": {
       "output": "server",
-      "favicon": "./assets/images/favicon.png",
+      "favicon": "./assets/images/icon.png",
       "bundler": "metro"
     },
     "plugins": [
@@ -26,7 +26,8 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-2.png",
+          "image": "./assets/images/splash.png",
+          "imageWidth": 300,
           "resizeMode": "contain",
           "backgroundColor": "#A0CCFF"
         }
