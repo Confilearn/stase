@@ -16,6 +16,10 @@
     "production": {
       "autoIncrement": true,
       "node": "20.18.0",
+      "env": {
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_Z2xhZC10ZXRyYS0xMC5jbGVyay5hY2NvdW50cy5kZXYk",
+        "EXPO_PUBLIC_SERVER_URL": "https://api.earnvite.com"
+      },
       "android": {
         "buildType": "apk"
       }
