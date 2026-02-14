@@ -6,18 +6,18 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const Welcome = () => {
   return (
-    <SafeAreaView className="flex-1 justify-between bg-bg-light dark:bg-bg-dark items-center p-4">
+    <SafeAreaView className="flex-1 justify-around bg-bg-light dark:bg-bg-dark items-center p-4">
       <Image
         source={images.wallet}
-        className="size-[300px] mx-auto mt-4"
+        className="size-[300px] mx-auto mt-2"
         resizeMode="contain"
       />
 
-      <Text className="text-5xl font-metropolis-extrabold text-center pt-12 text-content-100 dark:text-content-500 leading-tight tracking-tighter">
+      <Text className="text-5xl font-metropolis-extrabold text-center text-content-100 dark:text-content-500 leading-tight tracking-tighter">
         SEND MONEY AND GET PAID WITH EASE
       </Text>
 
-      <View className="w-full flex items-center justify-center gap-3 pt-10 pb-2">
+      <View className="w-full flex items-center justify-center gap-3 pt-2 pb-2">
         <CustomButton
           title="Log in"
           style="w-full"
