@@ -99,7 +99,7 @@ client/
 
    ```bash
    git clone <client-repository-url>
-   cd stase-client
+   cd stase
    ```
 
 2. **Install dependencies**
@@ -114,7 +114,7 @@ client/
 
    ```env
    # API Configuration
-   EXPO_PUBLIC_SERVER_URL=your-stase-server-url
+   EXPO_PUBLIC_SERVER_URL=your-stase-server-endpoint
 
    # Clerk Authentication
    EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
@@ -174,7 +174,7 @@ The app uses a modern design system with:
 
 **Proudly designed by Confilearn** - Explore the complete UI/UX design system and user flow:
 
-[![View Stase Design on Figma](https://img.shields.io/badge/Figma-View%20Design-purple?style=for-the-badge&logo=figma&logoColor=white)](https://www.figma.com/design/mCcluvbC0jao1YL8rsmi0h/stase?node-id=6-663&t=VnITIQqLGH1w2MSK-1)
+[![View Stase Design on Figma](https://img.shields.io/badge/Figma-View%20Design-purple?style=for-the-badge&logo=figma&logoColor=white)](https://www.figma.com/design/mCcluvbC0jao1YL8rsmi0h/stase?node-id=0-1&p=f)
 
 #### Design Highlights:
 
@@ -195,7 +195,6 @@ The design demonstrates expertise in:
 
 - **End-to-end encryption** for sensitive data
 - **Secure authentication** with JWT tokens
-- **Biometric support** for enhanced security
 - **Transaction PIN** for financial operations
 - **Input validation** with Zod schemas
 - **Rate limiting** on API endpoints
