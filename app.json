@@ -14,7 +14,8 @@
     "android": {
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.confidence2004.stase"
+      "package": "com.confidence2004.stase",
+      "versionCode": 1
     },
     "web": {
       "output": "server",
